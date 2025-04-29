@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
@@ -19,13 +18,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import { Package, PackageX, FileText } from 'lucide-react';
+import { updateProfile as updateUserProfile } from '@/services/authService';
 
+// Updated Profile type to match expected database schema
 type Profile = {
   first_name: string;
   last_name: string;
   avatar_url: string;
-  address: string;
-  phone_number: string;
+  address?: string; // Optional since it may not exist in DB yet
+  phone_number?: string; // Optional since it may not exist in DB yet
 };
 
 const Profile = () => {
@@ -78,7 +79,7 @@ const Profile = () => {
           return;
         }
         
-        setProfile(data);
+        setProfile(data as Profile);
         setFirstName(data?.first_name || '');
         setLastName(data?.last_name || '');
         setAddress(data?.address || '');
@@ -101,29 +102,14 @@ const Profile = () => {
   // Function to ensure the profiles table has address and phone_number columns
   const ensureProfileTableHasRequiredColumns = async () => {
     try {
-      // Check if the columns exist first to avoid unnecessary operations
-      const { error: addressError } = await supabase
-        .from('profiles')
-        .update({ address: '' })
-        .eq('id', 'check-columns-exist')
-        .select();
-        
-      if (addressError && addressError.message.includes("column 'address' does not exist")) {
-        // Add address column with RLS policies
-        const { error } = await supabase.rpc('add_missing_profile_columns');
-        if (error) {
-          console.error("Error adding columns:", error.message);
-          
-          // Fallback: If RPC fails, handle gracefully
-          toast({
-            title: "Profile Update",
-            description: "Some profile fields may not be available. Please contact support.",
-            variant: "default",
-          });
-        }
-      }
+      await supabase.rpc('add_missing_profile_columns');
     } catch (error: any) {
-      console.error("Error checking profile table schema:", error.message);
+      console.error("Error ensuring profile columns exist:", error.message);
+      toast({
+        title: "Profile Update",
+        description: "Some profile fields may not be available. Please contact support.",
+        variant: "default",
+      });
     }
   };
   
@@ -135,50 +121,24 @@ const Profile = () => {
     setIsUpdating(true);
     
     try {
-      // Try to update with all fields
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: firstName,
-          last_name: lastName,
-          address: address,
-          phone_number: phoneNumber
-        })
-        .eq('id', user.id);
-        
-      if (error) {
-        // If error occurs, try updating only fields that are known to exist
-        console.error("Full profile update failed:", error.message);
-        
-        const { error: basicUpdateError } = await supabase
-          .from('profiles')
-          .update({
-            first_name: firstName,
-            last_name: lastName,
-          })
-          .eq('id', user.id);
-          
-        if (basicUpdateError) throw basicUpdateError;
-        
-        toast({
-          title: "Profile Partially Updated",
-          description: "Basic information updated. Some fields couldn't be saved."
-        });
-      } else {
-        toast({
-          title: "Profile Updated",
-          description: "Your profile has been updated successfully."
-        });
-      }
-      
-      // Update local profile state
-      setProfile(prev => prev ? { 
-        ...prev, 
-        first_name: firstName, 
+      // Use the authService updateProfile function
+      const updatedProfile = await updateUserProfile(user.id, {
+        first_name: firstName,
         last_name: lastName,
         address: address,
         phone_number: phoneNumber
-      } : null);
+      });
+      
+      // Update local profile state
+      if (updatedProfile) {
+        setProfile({
+          first_name: firstName,
+          last_name: lastName,
+          avatar_url: profile?.avatar_url || '',
+          address: address,
+          phone_number: phoneNumber
+        });
+      }
     } catch (error: any) {
       console.error("Error updating profile:", error.message);
       toast({
