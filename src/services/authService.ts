@@ -100,18 +100,23 @@ export const register = async (newUser: NewUser): Promise<User> => {
     throw new Error('Email already in use');
   }
   
+  // Generate avatar - ensure it's always defined
+  const avatarUrl = `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`;
+  
   // Create new user
   const user: User = {
     id: (sampleUsers.length + 1).toString(),
     name: newUser.name,
     email: newUser.email,
-    avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
+    avatar: avatarUrl
   };
   
   // In a real app, we would save this to a database
+  // Fix: Ensure avatar is provided as a non-optional property when adding to sampleUsers
   sampleUsers.push({
     ...user,
-    password: newUser.password
+    password: newUser.password,
+    avatar: avatarUrl  // Explicitly provide avatar to satisfy the type requirement
   });
   
   localStorage.setItem('user', JSON.stringify(user));
