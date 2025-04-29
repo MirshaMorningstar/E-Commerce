@@ -117,6 +117,26 @@ export const getAllCategories = async (): Promise<Category[]> => {
   }
 };
 
+// Get product count by category
+export const getProductCountByCategory = async (categoryId: string): Promise<number> => {
+  try {
+    const category = await getCategoryById(categoryId);
+    if (!category) return 0;
+    
+    const { count, error } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .eq('category', category.name);
+      
+    if (error) throw error;
+    
+    return count || 0;
+  } catch (error) {
+    console.error("Error fetching product count:", error);
+    return 0;
+  }
+};
+
 // Get category by ID
 export const getCategoryById = async (id: string): Promise<Category | null> => {
   const categories = await getAllCategories();
@@ -243,8 +263,18 @@ export const getProductById = async (id: string): Promise<Product | null> => {
       .single();
       
     if (error) throw error;
+
+    // Get review count and average rating
+    const productData = mapDatabaseProductToProduct(data);
+    const reviews = await getProductReviews(id);
     
-    return mapDatabaseProductToProduct(data);
+    if (reviews && reviews.length > 0) {
+      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+      productData.rating = totalRating / reviews.length;
+      productData.reviews = reviews.length;
+    }
+    
+    return productData;
   } catch (error) {
     console.error("Error fetching product by ID:", error);
     return null;
@@ -329,10 +359,10 @@ export const getProductReviews = async (productId: string) => {
       comment: review.comment,
       date: new Date(review.created_at),
       user: {
-        name: review.profiles?.first_name 
+        name: review.profiles && review.profiles.first_name 
           ? `${review.profiles.first_name} ${review.profiles.last_name || ''}`.trim()
           : 'Anonymous User',
-        avatar: review.profiles?.avatar_url || null
+        avatar: review.profiles && review.profiles.avatar_url ? review.profiles.avatar_url : null
       }
     }));
   } catch (error) {

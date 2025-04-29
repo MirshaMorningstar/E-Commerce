@@ -6,9 +6,10 @@ import { Category } from '@/services/productService';
 
 interface CategoryCardProps {
   category: Category;
+  productCount?: number;
 }
 
-const CategoryCard = ({ category }: CategoryCardProps) => {
+const CategoryCard = ({ category, productCount }: CategoryCardProps) => {
   return (
     <Link 
       to={`/category/${category.id}`} 
@@ -28,7 +29,7 @@ const CategoryCard = ({ category }: CategoryCardProps) => {
             {category.name}
           </h3>
           <p className="text-white/80 text-sm mb-2">
-            {category.subcategories.length} collections
+            {productCount ?? category.subcategories.length} {productCount === 1 ? 'product' : 'products'}
           </p>
           <div className="flex items-center text-white/90 text-sm group-hover:text-beige-100 transition-colors">
             <span>Shop now</span>

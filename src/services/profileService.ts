@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { User } from '@supabase/supabase-js';
+import { uploadFile } from './storageService';
 
 export type ProfileData = {
   first_name?: string;
@@ -64,21 +65,10 @@ export const uploadProfilePicture = async (userId: string, file: File) => {
     // Create a unique file name
     const fileExt = file.name.split('.').pop();
     const fileName = `${userId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `avatars/${fileName}`;
+    const filePath = `${fileName}`;
     
-    // Upload the file to Supabase Storage
-    const { error: uploadError } = await supabase.storage
-      .from('profiles')
-      .upload(filePath, file);
-    
-    if (uploadError) throw uploadError;
-    
-    // Get the public URL
-    const { data } = supabase.storage
-      .from('profiles')
-      .getPublicUrl(filePath);
-    
-    const avatarUrl = data.publicUrl;
+    // Upload the file using the storage service
+    const avatarUrl = await uploadFile('profiles', filePath, file);
     
     // Update the user's profile with the new avatar URL
     const { error: updateError } = await supabase

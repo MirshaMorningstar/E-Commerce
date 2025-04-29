@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
+import ProductGrid from '@/components/ProductGrid';
+import SectionTitle from '@/components/SectionTitle';
 import { Product, getProductById, getRelatedProducts } from '@/services/productService';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,8 +12,8 @@ import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { Heart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import ProductGrid from '@/components/ProductGrid';
 import { useToast } from '@/hooks/use-toast';
+import ProductReviews from '@/components/ProductReviews';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,33 +27,33 @@ const ProductDetail = () => {
   const [isLiked, setIsLiked] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const loadProduct = async () => {
-      if (!id) return;
+  const loadProduct = async () => {
+    if (!id) return;
+    
+    try {
+      setLoading(true);
+      const productData = await getProductById(id);
       
-      try {
-        setLoading(true);
-        const productData = await getProductById(id);
+      if (productData) {
+        setProduct(productData);
+        setSelectedImage(0);
         
-        if (productData) {
-          setProduct(productData);
-          setSelectedImage(0);
-          
-          // Check if product is in wishlist
-          const inWishlist = await isInWishlist(productData.id);
-          setIsLiked(inWishlist);
-          
-          // Load related products
-          const related = await getRelatedProducts(productData);
-          setRelatedProducts(related);
-        }
-      } catch (error) {
-        console.error("Error loading product:", error);
-      } finally {
-        setLoading(false);
+        // Check if product is in wishlist
+        const inWishlist = await isInWishlist(productData.id);
+        setIsLiked(inWishlist);
+        
+        // Load related products
+        const related = await getRelatedProducts(productData);
+        setRelatedProducts(related);
       }
-    };
+    } catch (error) {
+      console.error("Error loading product:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadProduct();
   }, [id, isInWishlist]);
 
@@ -95,6 +97,10 @@ const ProductDetail = () => {
       currency: 'USD',
       minimumFractionDigits: 2
     }).format(price);
+  };
+
+  const handleReviewsUpdated = () => {
+    loadProduct();
   };
 
   if (loading) {
@@ -312,54 +318,7 @@ const ProductDetail = () => {
               </div>
             </TabsContent>
             <TabsContent value="reviews" className="py-6">
-              <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-5 w-5 ${
-                          i < Math.floor(product.rating)
-                            ? 'text-amber-400 fill-amber-400'
-                            : 'text-gray-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-xl font-medium">{product.rating.toFixed(1)}</span>
-                  <span className="text-gray-500">Based on {product.reviews} reviews</span>
-                </div>
-                
-                <div className="border-t pt-6">
-                  {product.reviews > 0 ? (
-                    <div className="space-y-4">
-                      <div className="p-4 border rounded-lg">
-                        <div className="flex justify-between mb-2">
-                          <div>
-                            <span className="font-medium">Jane Doe</span>
-                            <div className="flex mt-1">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`h-4 w-4 ${
-                                    i < 5 ? 'text-amber-400 fill-amber-400' : 'text-gray-300'
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <div className="text-sm text-gray-500">2 weeks ago</div>
-                        </div>
-                        <p className="text-gray-600">
-                          This product exceeded my expectations! The quality is amazing, and it works exactly as described.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-gray-500">No reviews yet. Be the first to review this product!</p>
-                  )}
-                </div>
-              </div>
+              <ProductReviews productId={product.id} onReviewsUpdated={handleReviewsUpdated} />
             </TabsContent>
           </Tabs>
         </div>

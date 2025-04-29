@@ -4,9 +4,44 @@ import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin, Leaf, Award, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { subscribeToNewsletter } from '@/components/NewsletterService';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const { toast } = useToast();
+  const [email, setEmail] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !email.includes('@')) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await subscribeToNewsletter(email);
+      toast({
+        title: "Subscribed!",
+        description: "You've been successfully subscribed to our newsletter.",
+      });
+      setEmail('');
+    } catch (error) {
+      toast({
+        title: "Subscription Failed",
+        description: "There was an error subscribing to the newsletter. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <footer className="bg-sage-50 pt-16 pb-8">
@@ -54,16 +89,16 @@ const Footer = () => {
               We believe in beauty that empowers and enhances without compromising our planet.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="h-8 w-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-600 hover:bg-sage-200 transition-colors">
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="h-8 w-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-600 hover:bg-sage-200 transition-colors">
                 <Facebook size={16} />
               </a>
-              <a href="#" className="h-8 w-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-600 hover:bg-sage-200 transition-colors">
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="h-8 w-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-600 hover:bg-sage-200 transition-colors">
                 <Instagram size={16} />
               </a>
-              <a href="#" className="h-8 w-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-600 hover:bg-sage-200 transition-colors">
+              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="h-8 w-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-600 hover:bg-sage-200 transition-colors">
                 <Twitter size={16} />
               </a>
-              <a href="#" className="h-8 w-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-600 hover:bg-sage-200 transition-colors">
+              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="h-8 w-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-600 hover:bg-sage-200 transition-colors">
                 <Youtube size={16} />
               </a>
             </div>
@@ -125,28 +160,34 @@ const Footer = () => {
             <p className="text-sage-600 mb-4">
               Join our community for sustainable beauty tips and exclusive offers.
             </p>
-            <form className="flex mb-4">
+            <form className="flex mb-4" onSubmit={handleSubscribe}>
               <Input
                 type="email"
                 placeholder="Your email"
                 className="rounded-l-full rounded-r-none border-sage-200 focus-visible:ring-sage-500"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
-              <Button className="rounded-l-none rounded-r-full bg-sage-600 hover:bg-sage-700">
-                Subscribe
+              <Button 
+                type="submit"
+                className="rounded-l-none rounded-r-full bg-sage-600 hover:bg-sage-700"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Subscribing...' : 'Subscribe'}
               </Button>
             </form>
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sage-600">
                 <Mail size={16} className="text-sage-500" />
-                <span>support@ecoglow.com</span>
+                <a href="mailto:support@ecoglow.com" className="hover:text-sage-800 transition-colors">support@ecoglow.com</a>
               </div>
               <div className="flex items-center gap-2 text-sage-600">
                 <Phone size={16} className="text-sage-500" />
-                <span>+1 (555) 123-4567</span>
+                <a href="tel:+15551234567" className="hover:text-sage-800 transition-colors">+1 (555) 123-4567</a>
               </div>
               <div className="flex items-center gap-2 text-sage-600">
                 <MapPin size={16} className="text-sage-500" />
-                <span>123 Green Ave, Eco City</span>
+                <address className="not-italic">123 Green Ave, Eco City</address>
               </div>
             </div>
           </div>

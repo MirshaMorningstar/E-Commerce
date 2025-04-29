@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getAllCategories, Category } from '@/services/productService';
+import { getAllCategories, Category, getProductCountByCategory } from '@/services/productService';
 import SectionTitle from './SectionTitle';
 import CategoryCard from './CategoryCard';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { ArrowRight } from 'lucide-react';
 
 const CategorySection = () => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [productCounts, setProductCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,6 +17,14 @@ const CategorySection = () => {
       try {
         const fetchedCategories = await getAllCategories();
         setCategories(fetchedCategories);
+        
+        // Get product counts for each category
+        const counts: Record<string, number> = {};
+        for (const category of fetchedCategories) {
+          const count = await getProductCountByCategory(category.id);
+          counts[category.id] = count;
+        }
+        setProductCounts(counts);
       } catch (error) {
         console.error("Error loading categories:", error);
       } finally {
@@ -51,7 +60,10 @@ const CategorySection = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
             {categories.map(category => (
               <div className="animate-nature-grow" key={category.id} style={{animationDelay: `${categories.indexOf(category) * 0.1}s`}}>
-                <CategoryCard category={category} />
+                <CategoryCard 
+                  category={category}
+                  productCount={productCounts[category.id] || 0}
+                />
               </div>
             ))}
           </div>

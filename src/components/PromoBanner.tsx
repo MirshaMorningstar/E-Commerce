@@ -31,10 +31,10 @@ const PromoBanner = () => {
                 </Button>
               </div>
             </div>
-            <div className="hidden md:block">
+            <div className="hidden md:block relative">
               <img
-                src="https://images.unsplash.com/photo-1615396900547-51398d4aa05a?q=80&w=800"
-                alt="Natural skincare products promotion"
+                src="https://images.unsplash.com/photo-1526947425960-945c6e72858f?q=80&w=800"
+                alt="Natural skincare products"
                 className="h-full w-full object-cover"
               />
             </div>
