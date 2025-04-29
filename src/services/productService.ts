@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Category {
@@ -25,6 +26,17 @@ export interface Product {
   isOnSale?: boolean;
   isBestseller?: boolean;
   stock: number;
+}
+
+export interface ProductReview {
+  id: string;
+  rating: number;
+  comment: string;
+  date: Date;
+  user: {
+    name: string;
+    avatar: string | null;
+  };
 }
 
 // Helper function to map database product to Product type
@@ -360,16 +372,12 @@ export const getProductReviews = async (productId: string): Promise<ProductRevie
       date: new Date(review.created_at),
       user: {
         name: review.profiles && 
-              review.profiles !== null &&
-              typeof review.profiles === 'object' && 
-              'first_name' in review.profiles ? 
-              `${review.profiles.first_name || ''} ${review.profiles.last_name || ''}`.trim() : 
+              typeof review.profiles === 'object' ? 
+              `${review.profiles?.first_name || ''} ${review.profiles?.last_name || ''}`.trim() || 'Anonymous User' : 
               'Anonymous User',
         avatar: review.profiles && 
-                review.profiles !== null &&
-                typeof review.profiles === 'object' && 
-                'avatar_url' in review.profiles ? 
-                review.profiles.avatar_url : 
+                typeof review.profiles === 'object' ? 
+                review.profiles?.avatar_url || null : 
                 null
       }
     }));
