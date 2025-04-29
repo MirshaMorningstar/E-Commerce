@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Heart, User, Search, Menu, X } from 'lucide-react';
+import { ShoppingBag, Heart, User, Search, Menu, X, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -23,8 +23,8 @@ const NavLink = ({ to, children, className, onClick }: NavLinkProps) => {
     <Link
       to={to}
       className={cn(
-        'nav-link font-medium text-gray-600 hover:text-cosmetic-600 transition-colors',
-        isActive && 'text-cosmetic-600 font-semibold',
+        'nav-link font-medium text-sage-700 hover:text-sage-900 transition-colors',
+        isActive && 'text-sage-900 font-semibold',
         className
       )}
       onClick={onClick}
@@ -75,8 +75,13 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="text-2xl font-bold text-cosmetic-700">
-            Cosmic<span className="text-gold-500">Chic</span>
+          <Link to="/" className="flex items-center gap-2">
+            <div className="h-8 w-8 bg-sage-600 rounded-full flex items-center justify-center">
+              <Leaf className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-2xl font-bold text-sage-800 font-serif">
+              Eco<span className="text-rose-400">Glow</span>
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -95,30 +100,30 @@ const Navbar = () => {
               <Input
                 type="search"
                 placeholder="Search..."
-                className="w-[200px] rounded-full pr-8"
+                className="w-[200px] rounded-full pr-8 border-sage-200 focus-visible:ring-sage-500"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               <Search 
-                className="absolute right-2.5 top-2.5 h-4 w-4 text-gray-500" 
+                className="absolute right-2.5 top-2.5 h-4 w-4 text-sage-500" 
                 onClick={() => handleSearch}
               />
             </form>
-            <Link to={isAuthenticated ? "/account" : "/login"} className="text-gray-700 hover:text-cosmetic-600">
-              <Button variant="ghost" size="icon">
+            <Link to={isAuthenticated ? "/account" : "/login"} className="text-sage-700 hover:text-sage-900">
+              <Button variant="ghost" size="icon" className="rounded-full">
                 <User className="h-5 w-5" />
               </Button>
             </Link>
-            <Link to="/wishlist" className="text-gray-700 hover:text-cosmetic-600">
-              <Button variant="ghost" size="icon">
+            <Link to="/wishlist" className="text-sage-700 hover:text-sage-900">
+              <Button variant="ghost" size="icon" className="rounded-full">
                 <Heart className="h-5 w-5" />
               </Button>
             </Link>
-            <Link to="/cart" className="text-gray-700 hover:text-cosmetic-600 relative">
-              <Button variant="ghost" size="icon">
+            <Link to="/cart" className="text-sage-700 hover:text-sage-900 relative">
+              <Button variant="ghost" size="icon" className="rounded-full">
                 <ShoppingBag className="h-5 w-5" />
                 {cart.totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-cosmetic-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-sage-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {cart.totalItems}
                   </span>
                 )}
@@ -128,11 +133,11 @@ const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-3">
-            <Link to="/cart" className="text-gray-700 hover:text-cosmetic-600 relative">
-              <Button variant="ghost" size="icon">
+            <Link to="/cart" className="text-sage-700 hover:text-sage-900 relative">
+              <Button variant="ghost" size="icon" className="rounded-full">
                 <ShoppingBag className="h-5 w-5" />
                 {cart.totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-cosmetic-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-sage-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {cart.totalItems}
                   </span>
                 )}
@@ -141,12 +146,13 @@ const Navbar = () => {
             <Button 
               variant="ghost" 
               size="icon"
+              className="rounded-full"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? (
-                <X className="h-6 w-6" />
+                <X className="h-6 w-6 text-sage-700" />
               ) : (
-                <Menu className="h-6 w-6" />
+                <Menu className="h-6 w-6 text-sage-700" />
               )}
             </Button>
           </div>
@@ -154,13 +160,13 @@ const Navbar = () => {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden mt-4 py-4 bg-white rounded-lg shadow-lg animate-slide-in">
+          <div className="md:hidden mt-4 py-4 bg-white rounded-2xl shadow-lg animate-slide-in">
             <form onSubmit={handleSearch} className="px-4 mb-4">
               <div className="relative">
                 <Input
                   type="search"
                   placeholder="Search..."
-                  className="w-full rounded-full pr-8"
+                  className="w-full rounded-full pr-8 border-sage-200"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -168,26 +174,26 @@ const Navbar = () => {
                   type="submit" 
                   size="icon" 
                   variant="ghost"
-                  className="absolute right-0 top-0"
+                  className="absolute right-0 top-0 rounded-full"
                 >
-                  <Search className="h-4 w-4" />
+                  <Search className="h-4 w-4 text-sage-500" />
                 </Button>
               </div>
             </form>
-            <div className="flex flex-col space-y-3 px-4">
+            <div className="flex flex-col space-y-1 px-4">
               <NavLink to="/" className="py-2">Home</NavLink>
               <NavLink to="/shop" className="py-2">Shop</NavLink>
               <NavLink to="/categories" className="py-2">Categories</NavLink>
               <NavLink to="/bestsellers" className="py-2">Bestsellers</NavLink>
               <NavLink to="/new" className="py-2">New</NavLink>
               <NavLink to="/sale" className="py-2">Sale</NavLink>
-              <div className="border-t border-gray-200 my-2"></div>
+              <div className="border-t border-sage-100 my-2"></div>
               <NavLink to={isAuthenticated ? "/account" : "/login"} className="py-2 flex items-center gap-2">
-                <User className="h-4 w-4" />
+                <User className="h-4 w-4 text-sage-600" />
                 <span>{isAuthenticated ? 'My Account' : 'Login / Register'}</span>
               </NavLink>
               <NavLink to="/wishlist" className="py-2 flex items-center gap-2">
-                <Heart className="h-4 w-4" />
+                <Heart className="h-4 w-4 text-sage-600" />
                 <span>Wishlist</span>
               </NavLink>
             </div>

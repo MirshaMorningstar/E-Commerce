@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
+import { Leaf, Send } from 'lucide-react';
 
 const Newsletter = () => {
   const [email, setEmail] = useState('');
@@ -14,21 +15,27 @@ const Newsletter = () => {
     // In a real app, we would send this to an API
     toast({
       title: "Thanks for subscribing!",
-      description: "We'll keep you updated with the latest news and offers.",
+      description: "We'll keep you updated with eco-friendly beauty news and offers.",
     });
     
     setEmail('');
   };
 
   return (
-    <section className="py-16 bg-cosmetic-50">
+    <section className="py-16 bg-sage-50">
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">
-            Stay in the Beauty Loop
+          <div className="flex justify-center mb-3">
+            <div className="h-12 w-12 rounded-full bg-sage-100 flex items-center justify-center">
+              <Leaf className="h-6 w-6 text-sage-600" />
+            </div>
+          </div>
+          
+          <h2 className="text-3xl font-bold text-sage-800 mb-4 font-serif">
+            Join Our Eco-Beauty Community
           </h2>
-          <p className="text-gray-600 mb-8">
-            Subscribe to our newsletter for early access to sales, exclusive offers, and beauty tips.
+          <p className="text-sage-600 mb-8">
+            Subscribe to our newsletter for sustainable beauty tips, early access to sales, and exclusive eco-friendly offers.
           </p>
           
           <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
@@ -38,15 +45,15 @@ const Newsletter = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="flex-grow"
+              className="flex-grow rounded-full border-sage-200 focus-visible:ring-sage-500"
             />
-            <Button type="submit" className="bg-cosmetic-600 hover:bg-cosmetic-700">
-              Subscribe
+            <Button type="submit" className="bg-sage-600 hover:bg-sage-700 rounded-full flex items-center gap-2">
+              Subscribe <Send size={16} />
             </Button>
           </form>
           
-          <p className="text-sm text-gray-500 mt-4">
-            We respect your privacy and will never share your information.
+          <p className="text-sm text-sage-500 mt-4">
+            We're committed to sustainability and will never share your information.
           </p>
         </div>
       </div>

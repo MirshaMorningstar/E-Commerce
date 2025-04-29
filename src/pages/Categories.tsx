@@ -29,7 +29,7 @@ const Categories = () => {
       <div className="container mx-auto px-4 py-16">
         <SectionTitle
           title="Browse Categories"
-          subtitle="Explore our wide range of product categories"
+          subtitle="Explore our wide range of sustainable product categories"
           center
         />
         
@@ -37,14 +37,16 @@ const Categories = () => {
           <div className="animate-pulse">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-gray-200 h-72 rounded-md"></div>
+                <div key={i} className="bg-beige-200 h-72 rounded-2xl"></div>
               ))}
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
-            {categories.map(category => (
-              <CategoryCard key={category.id} category={category} />
+            {categories.map((category, index) => (
+              <div className="animate-nature-grow" key={category.id} style={{animationDelay: `${index * 0.1}s`}}>
+                <CategoryCard category={category} />
+              </div>
             ))}
           </div>
         )}

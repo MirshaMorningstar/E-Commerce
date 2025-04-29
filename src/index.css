@@ -1,4 +1,5 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -7,74 +8,74 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --background: 115 20% 98%;
+    --foreground: 140 10% 20%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 140 10% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover-foreground: 140 10% 20%;
 
-    --primary: 325 90% 66%;
+    --primary: 140 30% 50%;
     --primary-foreground: 355 100% 97%;
 
-    --secondary: 240 5.9% 96%;
-    --secondary-foreground: 240 5.9% 10%;
+    --secondary: 60 15% 94%;
+    --secondary-foreground: 140 5.9% 10%;
 
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+    --muted: 60 15% 94%;
+    --muted-foreground: 140 3.8% 46.1%;
 
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --accent: 340 30% 92%;
+    --accent-foreground: 340 40% 40%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 325 90% 66%;
+    --border: 140 20% 88%;
+    --input: 140 20% 88%;
+    --ring: 140 30% 50%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
 
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-foreground: 140 5.3% 26.1%;
+    --sidebar-primary: 140 5.9% 10%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 140 4.8% 95.9%;
+    --sidebar-accent-foreground: 140 5.9% 10%;
+    --sidebar-border: 140 13% 91%;
+    --sidebar-ring: 140 91.2% 59.8%;
   }
 
   .dark {
-    --background: 20 14.3% 4.1%;
+    --background: 140 30% 5%;
     --foreground: 0 0% 95%;
 
-    --card: 24 9.8% 10%;
+    --card: 140 20% 8%;
     --card-foreground: 0 0% 95%;
 
     --popover: 0 0% 9%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 325 90% 66%;
+    --primary: 140 30% 50%;
     --primary-foreground: 355 100% 97%;
 
-    --secondary: 240 3.7% 15.9%;
+    --secondary: 140 25% 15%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 140 25% 15%;
+    --muted-foreground: 140 5% 64.9%;
 
-    --accent: 12 6.5% 15.1%;
+    --accent: 340 30% 15%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 85.7% 97.3%;
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 325 90% 66%;
+    --border: 140 25% 20%;
+    --input: 140 25% 20%;
+    --ring: 140 30% 50%;
   }
 }
 
@@ -91,14 +92,19 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
 }
 
-.hero-gradient {
-  background: linear-gradient(90deg, rgba(249,168,212,0.2) 0%, rgba(255,237,213,0.3) 100%);
+.eco-hero-gradient {
+  background: linear-gradient(90deg, rgba(168,224,186,0.2) 0%, rgba(237,233,213,0.3) 100%);
 }
 
 .product-card {
   transition: all 0.3s ease;
+  @apply rounded-2xl overflow-hidden;
 }
 
 .product-card:hover {
@@ -108,6 +114,7 @@
 
 .product-image-container {
   overflow: hidden;
+  @apply rounded-t-2xl;
 }
 
 .product-image-container img {
@@ -120,6 +127,7 @@
 
 .category-card {
   transition: all 0.3s ease;
+  @apply rounded-2xl overflow-hidden;
 }
 
 .category-card:hover {
@@ -143,4 +151,8 @@
 
 .nav-link:hover::after {
   width: 100%;
+}
+
+.eco-leaf-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%238bbd9e' fill-opacity='0.07'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Star } from 'lucide-react';
+import { Star, Quote } from 'lucide-react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import SectionTitle from './SectionTitle';
 
@@ -19,7 +19,7 @@ const testimonials: Testimonial[] = [
     name: 'Sarah Johnson',
     role: 'Skincare Enthusiast',
     image: 'https://i.pravatar.cc/150?img=32',
-    content: 'The serums are amazing! I\'ve been using the Radiance Serum for just two weeks, and my skin already looks noticeably brighter and more even-toned. Definitely worth every penny.',
+    content: 'The natural serums are amazing! I\'ve been using the Radiance Serum for just two weeks, and my skin already looks noticeably brighter and more even-toned. Definitely worth every penny.',
     rating: 5,
   },
   {
@@ -27,7 +27,7 @@ const testimonials: Testimonial[] = [
     name: 'Michael Chang',
     role: 'Makeup Artist',
     image: 'https://i.pravatar.cc/150?img=69',
-    content: 'As a professional makeup artist, I\'m very picky about the products I use. The foundation is simply outstanding - buildable coverage with a natural finish that lasts all day. My clients love it!',
+    content: 'As a professional makeup artist, I\'m very picky about the products I use. This organic foundation is simply outstanding - buildable coverage with a natural finish that lasts all day. My clients love it!',
     rating: 5,
   },
   {
@@ -35,7 +35,7 @@ const testimonials: Testimonial[] = [
     name: 'Emily Parker',
     role: 'Beauty Blogger',
     image: 'https://i.pravatar.cc/150?img=47',
-    content: 'I\'ve tried dozens of lipstick brands, but these are my new favorite. The color payoff is incredible, they\'re super comfortable, and they stay put through meals. Will be ordering more shades!',
+    content: 'I\'ve tried dozens of eco-friendly lipstick brands, but these are my new favorite. The color payoff is incredible, they\'re super comfortable, and they stay put through meals. Will be ordering more shades!',
     rating: 4,
   },
   {
@@ -43,7 +43,7 @@ const testimonials: Testimonial[] = [
     name: 'Thomas Wilson',
     role: 'Regular Customer',
     image: 'https://i.pravatar.cc/150?img=12',
-    content: 'Bought the skincare set for my wife\'s birthday, and she absolutely loves it. The packaging is elegant, and the products are high quality. Great customer service too!',
+    content: 'Bought the sustainable skincare set for my wife\'s birthday, and she absolutely loves it. The packaging is elegant, eco-friendly, and the products are high quality. Great customer service too!',
     rating: 5,
   },
   {
@@ -51,18 +51,18 @@ const testimonials: Testimonial[] = [
     name: 'Lisa Rodriguez',
     role: 'Skincare Specialist',
     image: 'https://i.pravatar.cc/150?img=25',
-    content: 'The ingredients in these products are top-notch. I especially appreciate the focus on clean formulations without compromising effectiveness. I recommend these to my clients regularly.',
+    content: 'The ingredients in these products are top-notch. I especially appreciate the focus on clean, natural formulations without compromising effectiveness. I recommend these to my clients regularly.',
     rating: 5,
   },
 ];
 
 const Testimonials = () => {
   return (
-    <section className="py-16">
+    <section className="py-16 bg-beige-50 eco-leaf-pattern">
       <div className="container mx-auto px-4">
         <SectionTitle
           title="What Our Customers Say"
-          subtitle="Real reviews from beauty enthusiasts like you"
+          subtitle="Real reviews from eco-conscious beauty enthusiasts like you"
           center
         />
         
@@ -74,19 +74,20 @@ const Testimonials = () => {
           className="w-full"
         >
           <CarouselContent>
-            {testimonials.map((testimonial) => (
+            {testimonials.map((testimonial, index) => (
               <CarouselItem key={testimonial.id} className="md:basis-1/2 lg:basis-1/3 p-1">
-                <div className="bg-white rounded-lg shadow p-6 h-full flex flex-col">
-                  <div className="flex items-center space-x-4 mb-4">
+                <div className="bg-white rounded-2xl shadow p-6 h-full flex flex-col animate-nature-grow" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <div className="flex items-start space-x-4 mb-4">
                     <img
                       src={testimonial.image}
                       alt={testimonial.name}
                       className="w-12 h-12 rounded-full object-cover"
                     />
                     <div>
-                      <h4 className="font-semibold text-gray-800">{testimonial.name}</h4>
-                      <p className="text-sm text-gray-500">{testimonial.role}</p>
+                      <h4 className="font-semibold text-sage-900 font-serif">{testimonial.name}</h4>
+                      <p className="text-sm text-sage-600">{testimonial.role}</p>
                     </div>
+                    <Quote className="ml-auto text-sage-200 h-8 w-8" />
                   </div>
                   <div className="flex mb-3">
                     {[...Array(5)].map((_, i) => (
@@ -94,19 +95,19 @@ const Testimonials = () => {
                         key={i}
                         className={`h-4 w-4 ${
                           i < testimonial.rating
-                            ? 'text-amber-400 fill-amber-400'
+                            ? 'text-beige-500 fill-beige-500'
                             : 'text-gray-300'
                         }`}
                       />
                     ))}
                   </div>
-                  <p className="text-gray-600 italic flex-grow">{testimonial.content}</p>
+                  <p className="text-sage-700 italic flex-grow">{testimonial.content}</p>
                 </div>
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious className="hidden md:flex" />
-          <CarouselNext className="hidden md:flex" />
+          <CarouselPrevious className="hidden md:flex bg-white text-sage-700 hover:bg-sage-50 hover:text-sage-800 border-sage-200" />
+          <CarouselNext className="hidden md:flex bg-white text-sage-700 hover:bg-sage-50 hover:text-sage-800 border-sage-200" />
         </Carousel>
       </div>
     </section>

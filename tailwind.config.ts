@@ -63,6 +63,55 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
+				// New eco-friendly color palette
+				sage: {
+					50: '#F0F4F1',
+					100: '#E1E9E3',
+					200: '#C3D4C7',
+					300: '#A6BFAC',
+					400: '#88A990',
+					500: '#6A9474',
+					600: '#55765D',
+					700: '#405947',
+					800: '#2B3B30',
+					900: '#151E18',
+				},
+				beige: {
+					50: '#FBFAF7',
+					100: '#F6F4EE',
+					200: '#EDE9DD',
+					300: '#E4DECC',
+					400: '#DAD3BB',
+					500: '#D1C8AA',
+					600: '#A7A088',
+					700: '#7D7866',
+					800: '#545044',
+					900: '#2A2822',
+				},
+				rose: {
+					50: '#FDF1F4',
+					100: '#FBE4E8',
+					200: '#F7C9D2',
+					300: '#F4AFBB',
+					400: '#F094A5',
+					500: '#EC798E',
+					600: '#BD6172',
+					700: '#8E4855',
+					800: '#5E3039',
+					900: '#2F181C',
+				},
+				earth: {
+					50: '#F6F3EF',
+					100: '#EDE7DF',
+					200: '#DACFBF',
+					300: '#C8B79F',
+					400: '#B59F7F',
+					500: '#A3875F',
+					600: '#826C4C',
+					700: '#625139',
+					800: '#413626',
+					900: '#211B13',
+				},
 				cosmetic: {
 					50: '#FDF2F8',
 					100: '#FCE7F3',
@@ -127,13 +176,28 @@ export default {
 						transform: 'translateY(0)',
 						opacity: '1'
 					}
+				},
+				'nature-grow': {
+					'0%': {
+						transform: 'scale(0.97)',
+						opacity: '0'
+					},
+					'100%': {
+						transform: 'scale(1)',
+						opacity: '1'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.3s ease-out',
-				'slide-in': 'slide-in 0.4s ease-out'
+				'slide-in': 'slide-in 0.4s ease-out',
+				'nature-grow': 'nature-grow 0.5s ease-out'
+			},
+			fontFamily: {
+				serif: ['Playfair Display', 'serif'],
+				sans: ['Poppins', 'sans-serif'],
 			}
 		}
 	},

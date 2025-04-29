@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingBag, Star } from 'lucide-react';
+import { Heart, ShoppingBag, Star, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Product } from '@/services/productService';
@@ -51,7 +51,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
   };
 
   return (
-    <div className="product-card group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md">
+    <div className="product-card group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md">
       <div className="relative product-image-container">
         <Link to={`/product/${product.id}`}>
           <img
@@ -70,7 +70,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             onClick={handleWishlist}
           >
             <Heart 
-              className={`h-4 w-4 ${isLiked ? 'fill-cosmetic-500 text-cosmetic-500' : 'text-gray-600'}`} 
+              className={`h-4 w-4 ${isLiked ? 'fill-rose-400 text-rose-400' : 'text-sage-600'}`} 
             />
           </Button>
           <Button 
@@ -79,28 +79,33 @@ const ProductCard = ({ product }: ProductCardProps) => {
             className="rounded-full bg-white/80 backdrop-blur-sm hover:bg-white"
             onClick={handleAddToCart}
           >
-            <ShoppingBag className="h-4 w-4 text-gray-600" />
+            <ShoppingBag className="h-4 w-4 text-sage-600" />
           </Button>
         </div>
         
         {/* Product badges */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
           {product.isNew && (
-            <Badge className="bg-emerald-500 hover:bg-emerald-600">New</Badge>
+            <Badge className="bg-sage-500 hover:bg-sage-600">New</Badge>
           )}
           {product.isOnSale && (
-            <Badge className="bg-cosmetic-500 hover:bg-cosmetic-600">Sale</Badge>
+            <Badge className="bg-rose-400 hover:bg-rose-500">Sale</Badge>
           )}
           {product.isFeatured && (
-            <Badge className="bg-amber-500 hover:bg-amber-600">Featured</Badge>
+            <Badge className="bg-beige-400 hover:bg-beige-500">Featured</Badge>
+          )}
+          {product.tags?.includes('organic') && (
+            <Badge className="bg-green-500 hover:bg-green-600 flex items-center gap-1">
+              <Leaf size={12} /> Organic
+            </Badge>
           )}
         </div>
       </div>
 
       <div className="p-4">
         <Link to={`/product/${product.id}`}>
-          <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
-          <h3 className="font-medium text-gray-800 mb-1 hover:text-cosmetic-600 transition-colors">
+          <div className="text-xs text-sage-500 mb-1">{product.brand}</div>
+          <h3 className="font-medium text-gray-800 mb-1 hover:text-sage-600 transition-colors font-serif">
             {product.name}
           </h3>
           
@@ -111,7 +116,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
                   key={i}
                   className={`h-3 w-3 ${
                     i < Math.floor(product.rating)
-                      ? 'text-amber-400 fill-amber-400'
+                      ? 'text-beige-500 fill-beige-500'
                       : 'text-gray-300'
                   }`}
                 />
@@ -121,7 +126,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="font-semibold">{formatPrice(product.price)}</span>
+            <span className="font-semibold font-serif">{formatPrice(product.price)}</span>
             {product.oldPrice && (
               <span className="text-sm text-gray-400 line-through">
                 {formatPrice(product.oldPrice)}
@@ -134,7 +139,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           <Button 
             onClick={handleAddToCart}
             variant="default" 
-            className="w-full bg-cosmetic-600 hover:bg-cosmetic-700"
+            className="w-full bg-sage-600 hover:bg-sage-700 rounded-full"
           >
             Add to Cart
           </Button>
