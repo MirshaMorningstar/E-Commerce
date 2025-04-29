@@ -304,3 +304,66 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
     return [];
   }
 };
+
+// Get product reviews
+export const getProductReviews = async (productId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select(`
+        *,
+        profiles:user_id (
+          first_name,
+          last_name,
+          avatar_url
+        )
+      `)
+      .eq('product_id', productId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    return data.map(review => ({
+      id: review.id,
+      rating: review.rating,
+      comment: review.comment,
+      date: new Date(review.created_at),
+      user: {
+        name: review.profiles?.first_name 
+          ? `${review.profiles.first_name} ${review.profiles.last_name || ''}`.trim()
+          : 'Anonymous User',
+        avatar: review.profiles?.avatar_url || null
+      }
+    }));
+  } catch (error) {
+    console.error("Error fetching product reviews:", error);
+    return [];
+  }
+};
+
+// Submit a review
+export const submitProductReview = async (
+  userId: string, 
+  productId: string, 
+  rating: number, 
+  comment: string
+) => {
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .insert({
+        user_id: userId,
+        product_id: productId,
+        rating,
+        comment
+      })
+      .select();
+    
+    if (error) throw error;
+    
+    return data[0];
+  } catch (error) {
+    console.error("Error submitting review:", error);
+    throw error;
+  }
+};

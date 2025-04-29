@@ -1,159 +1,194 @@
 
-import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { 
-  Card, 
-  CardContent,
-  CardDescription, 
-  CardHeader, 
-  CardTitle,
-  CardFooter
-} from "@/components/ui/card";
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Layout from '@/components/Layout';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from '@/integrations/supabase/client';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { toast } from "@/components/ui/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
-import Layout from '@/components/Layout';
-import { Package, PackageX, FileText } from 'lucide-react';
-import { updateProfile as updateUserProfile } from '@/services/authService';
-
-// Updated UserProfile type to use with users table
-type UserProfile = {
-  first_name?: string;
-  last_name?: string;
-  avatar_url?: string;
-  phone_number?: string;
-};
+import { supabase } from '@/integrations/supabase/client';
+import { getProfile, updateProfile, uploadProfilePicture, ProfileData } from '@/services/profileService';
 
 const Profile = () => {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // User profile state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [address, setAddress] = useState(""); // Kept for UI consistency but not stored
+  const [address, setAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [activeTab, setActiveTab] = useState("profile");
+  const [avatarUrl, setAvatarUrl] = useState("");
   
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   
+  // Loading states
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  
+  // Redirect if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate('/auth');
-      return;
     }
-    
-    const fetchProfile = async () => {
-      try {
-        if (!user) return;
-        
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-        
-        if (userError) {
-          console.error("Error fetching user:", userError.message);
-          toast({
-            title: "Error",
-            description: "Failed to load profile information",
-            variant: "destructive",
-          });
-          return;
+  }, [isAuthenticated, isLoading, navigate]);
+  
+  // Load profile data
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (user?.id) {
+        setIsLoadingProfile(true);
+        const profileData = await getProfile(user.id);
+        if (profileData) {
+          setFirstName(profileData.first_name || "");
+          setLastName(profileData.last_name || "");
+          setAddress(profileData.address || "");
+          setPhoneNumber(profileData.phone_number || "");
+          setAvatarUrl(profileData.avatar_url || "");
         }
-        
-        // Get user metadata
-        const metadata = userData.user.user_metadata || {};
-        
-        // Set default profile values
-        const userProfile: UserProfile = {
-          first_name: metadata.first_name || "",
-          last_name: metadata.last_name || "",
-          avatar_url: metadata.avatar_url || "",
-          phone_number: metadata.phone_number || ""
-        };
-        
-        setProfile(userProfile);
-        setFirstName(userProfile.first_name || "");
-        setLastName(userProfile.last_name || "");
-        setPhoneNumber(userProfile.phone_number || "");
-        
-      } catch (error: any) {
-        console.error("Error fetching profile:", error.message);
-        toast({
-          title: "Error",
-          description: "Failed to load profile information",
-          variant: "destructive",
-        });
+        setIsLoadingProfile(false);
       }
     };
     
-    if (isAuthenticated && user) {
-      fetchProfile();
+    if (isAuthenticated) {
+      loadProfile();
     }
-  }, [user, isAuthenticated, isLoading, navigate, toast]);
+  }, [user, isAuthenticated]);
   
-  const handleUpdateProfile = async (e: React.FormEvent) => {
+  // Handle profile update
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!user) return;
     
-    setIsUpdating(true);
+    setIsUpdatingProfile(true);
+    
+    const profileData: ProfileData = {
+      first_name: firstName,
+      last_name: lastName,
+      address,
+      phone_number: phoneNumber
+    };
+    
+    await updateProfile(user.id, profileData);
+    setIsUpdatingProfile(false);
+  };
+  
+  // Handle password change
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New passwords do not match.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsChangingPassword(true);
     
     try {
-      // Use the authService updateProfile function
-      const updatedProfile = await updateUserProfile(user.id, {
-        first_name: firstName,
-        last_name: lastName,
-        phone_number: phoneNumber
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
       });
       
-      // Update local profile state
-      if (updatedProfile) {
-        setProfile({
-          first_name: firstName,
-          last_name: lastName,
-          avatar_url: profile?.avatar_url || '',
-          phone_number: phoneNumber
-        });
-        
-        toast({
-          title: "Profile Updated",
-          description: "Your profile has been updated successfully."
-        });
-      }
-    } catch (error: any) {
-      console.error("Error updating profile:", error.message);
+      if (error) throw error;
+      
       toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update profile",
+        title: "Password Updated",
+        description: "Your password has been changed successfully."
+      });
+      
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
         variant: "destructive"
       });
     } finally {
-      setIsUpdating(false);
+      setIsChangingPassword(false);
     }
   };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/');
-    } catch (error) {
-      console.error("Error logging out:", error);
+  
+  // Handle avatar click
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+  
+  // Handle file selection
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !user) return;
+    
+    const file = e.target.files[0];
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File",
+        description: "Please select an image file.",
+        variant: "destructive"
+      });
+      return;
     }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Image file should be less than 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsUploadingAvatar(true);
+    
+    try {
+      const newAvatarUrl = await uploadProfilePicture(user.id, file);
+      if (newAvatarUrl) {
+        setAvatarUrl(newAvatarUrl);
+      }
+    } finally {
+      setIsUploadingAvatar(false);
+      
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+  
+  // Handle logout
+  const handleLogout = async () => {
+    await logout();
+    navigate('/auth');
   };
   
   if (isLoading) {
     return (
       <Layout>
         <div className="container mx-auto py-16 px-4">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-3xl mx-auto">
             <Card>
-              <CardHeader>
-                <CardTitle>Loading profile...</CardTitle>
-              </CardHeader>
+              <CardContent className="py-12">
+                <div className="flex justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                </div>
+              </CardContent>
             </Card>
           </div>
         </div>
@@ -161,175 +196,188 @@ const Profile = () => {
     );
   }
   
+  // Get initials for avatar fallback
+  const getInitials = () => {
+    if (firstName && lastName) {
+      return `${firstName[0]}${lastName[0]}`.toUpperCase();
+    } else if (firstName) {
+      return firstName[0].toUpperCase();
+    } else if (user?.user_metadata?.name) {
+      return (user.user_metadata.name as string)[0].toUpperCase();
+    }
+    return "U";
+  };
+  
   return (
     <Layout>
       <div className="container mx-auto py-16 px-4">
-        <div className="max-w-4xl mx-auto">
-          <Tabs defaultValue="profile" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-3xl font-semibold mb-8">My Account</h1>
+          
+          <div className="mb-8 flex flex-col items-center">
+            <div className="relative group cursor-pointer mb-4" onClick={handleAvatarClick}>
+              <Avatar className="w-24 h-24 border-2 border-white shadow-lg">
+                {avatarUrl ? (
+                  <AvatarImage src={avatarUrl} alt="Profile picture" />
+                ) : null}
+                <AvatarFallback className="text-2xl bg-primary text-white">
+                  {getInitials()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute inset-0 rounded-full bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-white text-xs font-medium">
+                  {isUploadingAvatar ? "Uploading..." : "Change Photo"}
+                </span>
+              </div>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                accept="image/*" 
+                className="hidden" 
+                onChange={handleFileChange}
+                disabled={isUploadingAvatar}
+              />
+            </div>
+            <h2 className="text-xl font-medium">
+              {firstName || user?.user_metadata?.name || user?.email}
+            </h2>
+            <p className="text-muted-foreground">{user?.email}</p>
+          </div>
+          
+          <Tabs defaultValue="profile" className="w-full">
+            <TabsList className="grid grid-cols-3 mb-8">
               <TabsTrigger value="profile">Profile</TabsTrigger>
+              <TabsTrigger value="security">Security</TabsTrigger>
               <TabsTrigger value="orders">Orders</TabsTrigger>
-              <TabsTrigger value="wishlist">Wishlist</TabsTrigger>
-              <TabsTrigger value="returns">Returns</TabsTrigger>
             </TabsList>
             
             <TabsContent value="profile">
               <Card>
-                <CardHeader className="text-center">
-                  <div className="flex justify-center mb-4">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage src={profile?.avatar_url} alt={firstName} />
-                      <AvatarFallback>{firstName?.charAt(0)}{lastName?.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <CardTitle>Your Profile</CardTitle>
-                  <CardDescription>
-                    Manage your personal information
-                  </CardDescription>
+                <CardHeader>
+                  <CardTitle>Profile Information</CardTitle>
                 </CardHeader>
-                <form onSubmit={handleUpdateProfile}>
+                <form onSubmit={handleProfileUpdate}>
+                  <CardContent className="space-y-4">
+                    {isLoadingProfile ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="first-name">First Name</Label>
+                            <Input 
+                              id="first-name" 
+                              value={firstName}
+                              onChange={(e) => setFirstName(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="last-name">Last Name</Label>
+                            <Input 
+                              id="last-name" 
+                              value={lastName}
+                              onChange={(e) => setLastName(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="address">Address</Label>
+                          <Input 
+                            id="address" 
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
+                            placeholder="Your shipping address"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Phone Number</Label>
+                          <Input 
+                            id="phone" 
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            placeholder="Your contact number"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      type="submit"
+                      disabled={isUpdatingProfile || isLoadingProfile}
+                    >
+                      {isUpdatingProfile ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </CardFooter>
+                </form>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="security">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Change Password</CardTitle>
+                </CardHeader>
+                <form onSubmit={handlePasswordChange}>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="new-password">New Password</Label>
                       <Input 
-                        id="email" 
-                        type="email" 
-                        value={user?.email || ""}
-                        disabled
+                        id="new-password" 
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
                       />
-                      <p className="text-sm text-muted-foreground">Email cannot be changed</p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name</Label>
-                        <Input 
-                          id="firstName" 
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name</Label>
-                        <Input 
-                          id="lastName" 
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                        />
-                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="address">Shipping Address</Label>
+                      <Label htmlFor="confirm-password">Confirm New Password</Label>
                       <Input 
-                        id="address" 
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
+                        id="confirm-password" 
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
                       />
-                      <p className="text-xs text-muted-foreground">Address is stored locally for your convenience</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phoneNumber">Phone Number</Label>
-                      <Input 
-                        id="phoneNumber" 
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                      />
-                    </div>
-                    <div className="flex gap-4">
-                      <Button 
-                        type="submit" 
-                        className="flex-1"
-                        disabled={isUpdating}
-                      >
-                        {isUpdating ? "Updating..." : "Update Profile"}
-                      </Button>
-                      <Button 
-                        type="button"
-                        variant="destructive"
-                        onClick={handleLogout}
-                      >
-                        Logout
-                      </Button>
                     </div>
                   </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Button 
+                      type="submit"
+                      disabled={isChangingPassword}
+                    >
+                      {isChangingPassword ? "Updating..." : "Change Password"}
+                    </Button>
+                  </CardFooter>
                 </form>
+              </Card>
+              
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>Account Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleLogout}
+                  >
+                    Sign Out
+                  </Button>
+                </CardContent>
               </Card>
             </TabsContent>
             
             <TabsContent value="orders">
               <Card>
                 <CardHeader>
-                  <CardTitle>Your Orders</CardTitle>
-                  <CardDescription>
-                    Track and manage your orders
-                  </CardDescription>
+                  <CardTitle>Order History</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <Link to="/track-order" className="block">
-                      <Card className="hover:bg-accent/50 transition-colors">
-                        <CardContent className="flex items-center gap-4 p-4">
-                          <Package className="h-8 w-8 text-sage-600" />
-                          <div>
-                            <h3 className="font-medium">Track Your Orders</h3>
-                            <p className="text-sm text-muted-foreground">Check status and delivery updates</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="wishlist">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Your Wishlist</CardTitle>
-                  <CardDescription>
-                    Products you've saved for later
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Link to="/wishlist" className="block">
-                    <Button className="w-full">Go to Wishlist</Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="returns">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Returns & Exchanges</CardTitle>
-                  <CardDescription>
-                    Manage your returns and exchanges
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <Link to="/returns-exchanges" className="block">
-                      <Card className="hover:bg-accent/50 transition-colors">
-                        <CardContent className="flex items-center gap-4 p-4">
-                          <PackageX className="h-8 w-8 text-sage-600" />
-                          <div>
-                            <h3 className="font-medium">Returns Policy</h3>
-                            <p className="text-sm text-muted-foreground">View our returns and exchanges policy</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                    <Link to="/track-order" className="block">
-                      <Card className="hover:bg-accent/50 transition-colors">
-                        <CardContent className="flex items-center gap-4 p-4">
-                          <FileText className="h-8 w-8 text-sage-600" />
-                          <div>
-                            <h3 className="font-medium">Start a Return</h3>
-                            <p className="text-sm text-muted-foreground">Initiate a return or exchange</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  </div>
+                  <p className="text-muted-foreground text-center py-6">
+                    You have no order history yet.
+                  </p>
                 </CardContent>
               </Card>
             </TabsContent>

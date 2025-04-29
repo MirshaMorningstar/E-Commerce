@@ -115,20 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
-      // Update profile with user's name
       if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            first_name: newUser.name,
-            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(newUser.name)}&background=random`
-          })
-          .eq('id', data.user.id);
-        
-        if (profileError) {
-          console.error("Error updating profile:", profileError);
-        }
-        
         return data.user;
       }
       throw new Error("Registration failed: No user data received");
