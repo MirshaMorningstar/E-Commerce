@@ -11,7 +11,7 @@ type AuthContextType = {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: UserCredentials) => Promise<void>;
-  register: (newUser: NewUser) => Promise<void>;
+  register: (newUser: NewUser) => Promise<User>;
   logout: () => Promise<void>;
 };
 
@@ -34,16 +34,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsAuthenticated(!!currentSession);
         setIsLoading(false);
         
         if (event === 'SIGNED_IN') {
+          // Get user's name from metadata if available
+          const userName = currentSession?.user?.user_metadata?.name || 'User';
+          
           toast({
             title: "Successfully signed in",
-            description: "Welcome back!"
+            description: `Welcome back, ${userName}!`
           });
         } else if (event === 'SIGNED_OUT') {
           toast({
@@ -125,7 +128,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (profileError) {
           console.error("Error updating profile:", profileError);
         }
+        
+        return data.user;
       }
+      throw new Error("Registration failed: No user data received");
     } catch (error: any) {
       toast({
         title: "Registration failed",

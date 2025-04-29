@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
+import { toast } from "@/components/ui/use-toast";
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const { isAuthenticated, isLoading, login, register } = useAuth();
@@ -31,6 +33,8 @@ const Auth = () => {
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [address, setAddress] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [registerError, setRegisterError] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
   
@@ -48,6 +52,10 @@ const Auth = () => {
     
     try {
       await login({ email: loginEmail, password: loginPassword });
+      toast({
+        title: "Welcome back!",
+        description: "You've successfully logged in.",
+      });
       navigate('/');
     } catch (error: any) {
       setLoginError(error.message || "Login failed. Please try again.");
@@ -68,12 +76,37 @@ const Auth = () => {
     setIsRegistering(true);
     
     try {
-      await register({
+      const user = await register({
         name: registerName,
         email: registerEmail,
         password: registerPassword
       });
-      navigate('/');
+      
+      if (user && user.id) {
+        // Store additional user details in profiles table
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            first_name: registerName,
+            address: address,
+            phone_number: phoneNumber,
+            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(registerName)}&background=random`
+          })
+          .eq('id', user.id);
+          
+        if (profileError) {
+          console.error("Error updating profile:", profileError);
+        }
+      }
+      
+      toast({
+        title: "Registration Successful",
+        description: "Please verify your email if required, then login.",
+      });
+      
+      // Switch to login tab after successful registration
+      setActiveTab("login");
+      setLoginEmail(registerEmail);
     } catch (error: any) {
       setRegisterError(error.message || "Registration failed. Please try again.");
     } finally {
@@ -160,7 +193,7 @@ const Auth = () => {
                 <form onSubmit={handleRegister}>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="register-name">Name</Label>
+                      <Label htmlFor="register-name">Full Name</Label>
                       <Input 
                         id="register-name" 
                         type="text"
@@ -179,6 +212,26 @@ const Auth = () => {
                         value={registerEmail}
                         onChange={(e) => setRegisterEmail(e.target.value)}
                         required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="register-address">Shipping Address</Label>
+                      <Input 
+                        id="register-address" 
+                        type="text"
+                        placeholder="Your full address"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="register-phone">Phone Number</Label>
+                      <Input 
+                        id="register-phone" 
+                        type="tel"
+                        placeholder="Your phone number"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">

@@ -1,12 +1,29 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Heart, User, Menu, X, Leaf } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShoppingBag, Heart, User, Menu, X, Leaf, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { SearchBar } from './SearchBar';
+import { useDebounce } from '@/hooks/use-debounce';
+import { searchProducts } from '@/services/productService';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu";
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type NavLinkProps = {
   to: string;
@@ -38,9 +55,15 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  
   const { cart } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -56,7 +79,44 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
     setShowMobileSearch(false);
   }, [location]);
+  
+  useEffect(() => {
+    const fetchSearchResults = async () => {
+      if (!debouncedSearchQuery.trim()) {
+        setSearchResults([]);
+        return;
+      }
 
+      setIsSearching(true);
+      try {
+        const results = await searchProducts(debouncedSearchQuery);
+        setSearchResults(results.slice(0, 5)); // Limit to 5 results in dropdown
+      } catch (error) {
+        console.error('Error searching products:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    fetchSearchResults();
+  }, [debouncedSearchQuery]);
+  
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery('');
+    }
+  };
+
+  const handleSelectProduct = (productId: string) => {
+    navigate(`/product/${productId}`);
+    setSearchQuery('');
+  };
+  
+  // Get first name to display in navbar
+  const firstName = user?.user_metadata?.name || '';
+  
   return (
     <header
       className={cn(
@@ -90,12 +150,111 @@ const Navbar = () => {
 
           {/* Desktop Search, User, Wishlist, Cart Icons */}
           <div className="hidden md:flex items-center gap-4">
-            <SearchBar />
-            <Link to={isAuthenticated ? "/account" : "/login"} className="text-sage-700 hover:text-sage-900">
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Search className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <form onSubmit={handleSearch} className="flex items-center border-b p-2">
+                  <input
+                    type="search"
+                    placeholder="Search products..."
+                    className="flex-1 border-none outline-none bg-transparent py-2 px-3"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <Button type="submit" variant="ghost" size="sm">
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </form>
+                {isSearching ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    Searching...
+                  </div>
+                ) : (
+                  searchResults.length > 0 && (
+                    <ScrollArea className="h-[300px]">
+                      <div className="py-2">
+                        {searchResults.map(product => (
+                          <button
+                            key={product.id}
+                            className="flex w-full items-center space-x-4 p-3 hover:bg-accent transition-colors"
+                            onClick={() => handleSelectProduct(product.id)}
+                          >
+                            <img 
+                              src={product.images[0]} 
+                              alt={product.name} 
+                              className="h-10 w-10 object-cover rounded-md" 
+                            />
+                            <div className="flex flex-col text-left">
+                              <span className="text-sm font-medium">{product.name}</span>
+                              <span className="text-xs text-muted-foreground">${product.price.toFixed(2)}</span>
+                            </div>
+                          </button>
+                        ))}
+                        <div className="p-2 text-center">
+                          <Button 
+                            variant="link" 
+                            size="sm"
+                            onClick={() => {
+                              navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+                              setSearchQuery('');
+                            }}
+                          >
+                            See all results
+                          </Button>
+                        </div>
+                      </div>
+                    </ScrollArea>
+                  )
+                )}
+              </PopoverContent>
+            </Popover>
+            
+            {isAuthenticated ? (
+              <NavigationMenu>
+                <NavigationMenuList>
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger>
+                      <div className="flex items-center gap-2">
+                        <User className="h-5 w-5" />
+                        <span className="text-sm font-medium">
+                          <span className="animate-pulse text-sage-600">Hello, {firstName.split(' ')[0]}</span>
+                        </span>
+                      </div>
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <div className="grid gap-2 p-4 w-[250px]">
+                        <NavigationMenuLink asChild>
+                          <Link to="/profile" className="block p-2 hover:bg-accent rounded-md">
+                            Profile
+                          </Link>
+                        </NavigationMenuLink>
+                        <NavigationMenuLink asChild>
+                          <Link to="/track-order" className="block p-2 hover:bg-accent rounded-md">
+                            Track Orders
+                          </Link>
+                        </NavigationMenuLink>
+                        <NavigationMenuLink asChild>
+                          <Link to="/returns-exchanges" className="block p-2 hover:bg-accent rounded-md">
+                            Returns & Exchanges
+                          </Link>
+                        </NavigationMenuLink>
+                      </div>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                </NavigationMenuList>
+              </NavigationMenu>
+            ) : (
+              <Link to="/auth" className="text-sage-700 hover:text-sage-900">
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
+            
             <Link to="/wishlist" className="text-sage-700 hover:text-sage-900">
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Heart className="h-5 w-5" />
@@ -151,7 +310,58 @@ const Navbar = () => {
         {/* Mobile Search Bar */}
         {showMobileSearch && (
           <div className="md:hidden mt-4">
-            <SearchBar isMobile onClose={() => setShowMobileSearch(false)} />
+            <form onSubmit={handleSearch} className="flex items-center">
+              <input
+                type="search"
+                placeholder="Search products..."
+                className="flex-1 border border-gray-200 rounded-l-md py-2 px-3"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Button type="submit" className="rounded-l-none">
+                <Search className="h-4 w-4" />
+              </Button>
+            </form>
+            {isSearching ? (
+              <div className="p-4 text-center text-sm text-muted-foreground">
+                Searching...
+              </div>
+            ) : (
+              searchResults.length > 0 && (
+                <div className="bg-white shadow-lg rounded-md mt-2">
+                  {searchResults.map(product => (
+                    <button
+                      key={product.id}
+                      className="flex w-full items-center space-x-4 p-3 hover:bg-accent transition-colors"
+                      onClick={() => handleSelectProduct(product.id)}
+                    >
+                      <img 
+                        src={product.images[0]} 
+                        alt={product.name} 
+                        className="h-10 w-10 object-cover rounded-md" 
+                      />
+                      <div className="flex flex-col text-left">
+                        <span className="text-sm font-medium">{product.name}</span>
+                        <span className="text-xs text-muted-foreground">${product.price.toFixed(2)}</span>
+                      </div>
+                    </button>
+                  ))}
+                  <div className="p-2 text-center">
+                    <Button 
+                      variant="link" 
+                      size="sm"
+                      onClick={() => {
+                        navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+                        setSearchQuery('');
+                        setShowMobileSearch(false);
+                      }}
+                    >
+                      See all results
+                    </Button>
+                  </div>
+                </div>
+              )
+            )}
           </div>
         )}
 
@@ -178,10 +388,22 @@ const Navbar = () => {
               <NavLink to="/new" className="py-2">New</NavLink>
               <NavLink to="/sale" className="py-2">Sale</NavLink>
               <div className="border-t border-sage-100 my-2"></div>
-              <NavLink to={isAuthenticated ? "/account" : "/login"} className="py-2 flex items-center gap-2">
-                <User className="h-4 w-4 text-sage-600" />
-                <span>{isAuthenticated ? 'My Account' : 'Login / Register'}</span>
-              </NavLink>
+              {isAuthenticated ? (
+                <>
+                  <div className="py-2 flex items-center gap-2">
+                    <User className="h-4 w-4 text-sage-600" />
+                    <span className="animate-pulse text-sage-600">Hello, {firstName.split(' ')[0]}</span>
+                  </div>
+                  <NavLink to="/profile" className="py-2 pl-6">My Profile</NavLink>
+                  <NavLink to="/track-order" className="py-2 pl-6">Track Orders</NavLink>
+                  <NavLink to="/returns-exchanges" className="py-2 pl-6">Returns & Exchanges</NavLink>
+                </>
+              ) : (
+                <NavLink to="/auth" className="py-2 flex items-center gap-2">
+                  <User className="h-4 w-4 text-sage-600" />
+                  <span>Login / Register</span>
+                </NavLink>
+              )}
               <NavLink to="/wishlist" className="py-2 flex items-center gap-2">
                 <Heart className="h-4 w-4 text-sage-600" />
                 <span>Wishlist</span>
