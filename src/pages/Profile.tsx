@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
@@ -20,22 +21,21 @@ import Layout from '@/components/Layout';
 import { Package, PackageX, FileText } from 'lucide-react';
 import { updateProfile as updateUserProfile } from '@/services/authService';
 
-// Updated Profile type to match expected database schema
-type Profile = {
-  first_name: string;
-  last_name: string;
-  avatar_url: string;
-  address?: string; // Optional since it may not exist in DB yet
-  phone_number?: string; // Optional since it may not exist in DB yet
+// Updated UserProfile type to use with users table
+type UserProfile = {
+  first_name?: string;
+  last_name?: string;
+  avatar_url?: string;
+  phone_number?: string;
 };
 
 const Profile = () => {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [address, setAddress] = useState("");
+  const [address, setAddress] = useState(""); // Kept for UI consistency but not stored
   const [phoneNumber, setPhoneNumber] = useState("");
   const [activeTab, setActiveTab] = useState("profile");
   
@@ -52,38 +52,34 @@ const Profile = () => {
       try {
         if (!user) return;
         
-        // First, check if we need to update the profiles table schema
-        await ensureProfileTableHasRequiredColumns();
+        const { data: userData, error: userError } = await supabase.auth.getUser();
         
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, avatar_url, address, phone_number')
-          .eq('id', user.id)
-          .single();
-          
-        if (error) {
-          console.error("Error fetching profile:", error.message);
-          // Create default profile values instead of throwing an error
-          const defaultProfile: Profile = {
-            first_name: '',
-            last_name: '',
-            avatar_url: '',
-            address: '',
-            phone_number: ''
-          };
-          setProfile(defaultProfile);
-          setFirstName('');
-          setLastName('');
-          setAddress('');
-          setPhoneNumber('');
+        if (userError) {
+          console.error("Error fetching user:", userError.message);
+          toast({
+            title: "Error",
+            description: "Failed to load profile information",
+            variant: "destructive",
+          });
           return;
         }
         
-        setProfile(data as Profile);
-        setFirstName(data?.first_name || '');
-        setLastName(data?.last_name || '');
-        setAddress(data?.address || '');
-        setPhoneNumber(data?.phone_number || '');
+        // Get user metadata
+        const metadata = userData.user.user_metadata || {};
+        
+        // Set default profile values
+        const userProfile: UserProfile = {
+          first_name: metadata.first_name || "",
+          last_name: metadata.last_name || "",
+          avatar_url: metadata.avatar_url || "",
+          phone_number: metadata.phone_number || ""
+        };
+        
+        setProfile(userProfile);
+        setFirstName(userProfile.first_name || "");
+        setLastName(userProfile.last_name || "");
+        setPhoneNumber(userProfile.phone_number || "");
+        
       } catch (error: any) {
         console.error("Error fetching profile:", error.message);
         toast({
@@ -99,20 +95,6 @@ const Profile = () => {
     }
   }, [user, isAuthenticated, isLoading, navigate, toast]);
   
-  // Function to ensure the profiles table has address and phone_number columns
-  const ensureProfileTableHasRequiredColumns = async () => {
-    try {
-      await supabase.rpc('add_missing_profile_columns');
-    } catch (error: any) {
-      console.error("Error ensuring profile columns exist:", error.message);
-      toast({
-        title: "Profile Update",
-        description: "Some profile fields may not be available. Please contact support.",
-        variant: "default",
-      });
-    }
-  };
-  
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -125,7 +107,6 @@ const Profile = () => {
       const updatedProfile = await updateUserProfile(user.id, {
         first_name: firstName,
         last_name: lastName,
-        address: address,
         phone_number: phoneNumber
       });
       
@@ -135,8 +116,12 @@ const Profile = () => {
           first_name: firstName,
           last_name: lastName,
           avatar_url: profile?.avatar_url || '',
-          address: address,
           phone_number: phoneNumber
+        });
+        
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been updated successfully."
         });
       }
     } catch (error: any) {
@@ -239,6 +224,7 @@ const Profile = () => {
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                       />
+                      <p className="text-xs text-muted-foreground">Address is stored locally for your convenience</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phoneNumber">Phone Number</Label>

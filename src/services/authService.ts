@@ -18,7 +18,6 @@ export type ProfileUpdate = {
   first_name?: string;
   last_name?: string;
   avatar_url?: string;
-  address?: string;
   phone_number?: string;
 };
 
@@ -66,6 +65,8 @@ export const register = async (newUser: NewUser): Promise<User> => {
     options: {
       data: {
         name: newUser.name,
+        first_name: newUser.name,
+        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(newUser.name)}&background=random`
       }
     }
   });
@@ -77,26 +78,6 @@ export const register = async (newUser: NewUser): Promise<User> => {
       variant: "destructive",
     });
     throw error;
-  }
-  
-  // Ensure profile table has required columns
-  try {
-    await supabase.rpc('add_missing_profile_columns');
-  } catch (error) {
-    console.error("Failed to ensure profile columns:", error);
-  }
-  
-  // Update profile with user's name
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({
-      first_name: newUser.name,
-      avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(newUser.name)}&background=random`
-    })
-    .eq('id', data.user?.id);
-  
-  if (profileError) {
-    console.error("Error updating profile:", profileError);
   }
   
   toast({
@@ -122,50 +103,16 @@ export const logout = async (): Promise<void> => {
   });
 };
 
-// Update profile with robust error handling
+// Update profile with metadata
 export const updateProfile = async (userId: string, profile: ProfileUpdate): Promise<any> => {
   try {
-    // First ensure the columns exist
-    try {
-      await supabase.rpc('add_missing_profile_columns');
-    } catch (error) {
-      console.warn("Could not ensure profile columns exist:", error);
-    }
-    
-    // Attempt full update
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(profile)
-      .eq('id', userId)
-      .select();
+    // Update user metadata instead of profiles table
+    const { data, error } = await supabase.auth.updateUser({
+      data: profile
+    });
       
     if (error) {
       console.error("Profile update error:", error);
-      
-      // If failed, try updating only basic fields
-      if (profile.first_name || profile.last_name || profile.avatar_url) {
-        const basicProfile = {
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          avatar_url: profile.avatar_url
-        };
-        
-        const { data: basicData, error: basicError } = await supabase
-          .from('profiles')
-          .update(basicProfile)
-          .eq('id', userId)
-          .select();
-          
-        if (basicError) throw basicError;
-        
-        toast({
-          title: "Basic Profile Updated",
-          description: "Only basic information was updated. Extended fields couldn't be saved."
-        });
-        
-        return basicData;
-      }
-      
       throw error;
     }
     
@@ -174,7 +121,7 @@ export const updateProfile = async (userId: string, profile: ProfileUpdate): Pro
       description: "Your profile has been updated successfully."
     });
     
-    return data;
+    return data.user.user_metadata;
   } catch (error: any) {
     toast({
       title: "Profile Update Failed",
