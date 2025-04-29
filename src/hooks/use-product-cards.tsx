@@ -2,6 +2,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Product } from '@/services/productService';
 import ProductGrid from '@/components/ProductGrid';
+import ProductCard from '@/components/ProductCard';
 import { useAutoScroll } from './use-auto-scroll';
 
 type ProductCardsProps = {
@@ -71,7 +72,7 @@ export const useProductCards = () => {
               <div className="flex gap-6 min-w-max">
                 {products.map(product => (
                   <div key={product.id} className="w-[250px]">
-                    <ProductGrid.Card product={product} />
+                    <ProductCard product={product} />
                   </div>
                 ))}
               </div>

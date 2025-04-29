@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Slider } from "@/components/ui/slider"
 import Layout from '@/components/Layout';
 import ProductGrid from '@/components/ProductGrid';
@@ -15,7 +16,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Filter, X, SlidersHorizontal, Grid3X3, LayoutGrid } from 'lucide-react';
-import { Product, getProducts } from '@/services/productService';
+import { Product, getAllProducts } from '@/services/productService';
 
 const CATEGORIES = ['Skincare', 'Makeup', 'Hair Care', 'Bath & Body', 'Fragrance'];
 const BRANDS = ['Natural Glow', 'Pure Essence', 'Eco Beauty', 'Green Life', 'Botanical'];
@@ -37,7 +38,7 @@ const Shop = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        const allProducts = await getProducts();
+        const allProducts = await getAllProducts();
         setProducts(allProducts);
         setFilteredProducts(allProducts);
         

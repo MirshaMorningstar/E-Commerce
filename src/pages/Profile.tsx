@@ -58,14 +58,23 @@ const Profile = () => {
           .single();
           
         if (error) {
-          throw error;
+          console.error("Error fetching profile:", error.message);
+          // Create default profile values instead of trying to use error object
+          setProfile({
+            first_name: '',
+            last_name: '',
+            avatar_url: '',
+            address: '',
+            phone_number: ''
+          });
+          return;
         }
         
         setProfile(data);
-        setFirstName(data.first_name || '');
-        setLastName(data.last_name || '');
-        setAddress(data.address || '');
-        setPhoneNumber(data.phone_number || '');
+        setFirstName(data?.first_name || '');
+        setLastName(data?.last_name || '');
+        setAddress(data?.address || '');
+        setPhoneNumber(data?.phone_number || '');
       } catch (error: any) {
         console.error("Error fetching profile:", error.message);
         toast({
