@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Category {
@@ -342,7 +341,7 @@ export const getProductReviews = async (productId: string) => {
       .from('reviews')
       .select(`
         *,
-        profiles:user_id (
+        profiles (
           first_name,
           last_name,
           avatar_url
@@ -359,10 +358,16 @@ export const getProductReviews = async (productId: string) => {
       comment: review.comment,
       date: new Date(review.created_at),
       user: {
-        name: review.profiles && review.profiles.first_name 
-          ? `${review.profiles.first_name} ${review.profiles.last_name || ''}`.trim()
-          : 'Anonymous User',
-        avatar: review.profiles && review.profiles.avatar_url ? review.profiles.avatar_url : null
+        name: review.profiles && 
+              typeof review.profiles === 'object' && 
+              'first_name' in review.profiles ? 
+              `${review.profiles.first_name || ''} ${review.profiles.last_name || ''}`.trim() : 
+              'Anonymous User',
+        avatar: review.profiles && 
+                typeof review.profiles === 'object' && 
+                'avatar_url' in review.profiles ? 
+                review.profiles.avatar_url : 
+                null
       }
     }));
   } catch (error) {

@@ -26,7 +26,7 @@ const Footer = () => {
 
     setIsSubmitting(true);
     try {
-      await subscribeToNewsletter(email);
+      await subscribeToNewsletter({ email });
       toast({
         title: "Subscribed!",
         description: "You've been successfully subscribed to our newsletter.",
