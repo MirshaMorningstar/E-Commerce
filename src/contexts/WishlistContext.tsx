@@ -10,13 +10,15 @@ import {
   clearWishlist as clearWishlistService
 } from '../services/wishlistService';
 import { Product } from '../services/productService';
+import { useAuth } from './AuthContext';
 
 type WishlistContextType = {
   wishlist: Wishlist;
-  addToWishlist: (product: Product) => void;
-  removeFromWishlist: (productId: string) => void;
-  isInWishlist: (productId: string) => boolean;
-  clearWishlist: () => void;
+  isLoading: boolean;
+  addToWishlist: (product: Product) => Promise<void>;
+  removeFromWishlist: (productId: string) => Promise<void>;
+  isInWishlist: (productId: string) => Promise<boolean>;
+  clearWishlist: () => Promise<void>;
 };
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
@@ -31,47 +33,47 @@ export const useWishlist = () => {
 
 export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [wishlist, setWishlist] = useState<Wishlist>({ items: [] });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const loadWishlist = () => {
-      const currentWishlist = getWishlistService();
-      setWishlist(currentWishlist);
+    const loadWishlist = async () => {
+      setIsLoading(true);
+      try {
+        const currentWishlist = await getWishlistService();
+        setWishlist(currentWishlist);
+      } catch (error) {
+        console.error("Error loading wishlist:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
     
     loadWishlist();
-    
-    window.addEventListener('storage', (event) => {
-      if (event.key === 'wishlist') {
-        loadWishlist();
-      }
-    });
-    
-    return () => {
-      window.removeEventListener('storage', () => {});
-    };
-  }, []);
+  }, [isAuthenticated, user]);
 
-  const handleAddToWishlist = (product: Product) => {
-    addToWishlistService(product);
-    setWishlist(getWishlistService());
+  const handleAddToWishlist = async (product: Product) => {
+    await addToWishlistService(product);
+    setWishlist(await getWishlistService());
   };
 
-  const handleRemoveFromWishlist = (productId: string) => {
-    removeFromWishlistService(productId);
-    setWishlist(getWishlistService());
+  const handleRemoveFromWishlist = async (productId: string) => {
+    await removeFromWishlistService(productId);
+    setWishlist(await getWishlistService());
   };
 
-  const handleIsInWishlist = (productId: string) => {
+  const handleIsInWishlist = async (productId: string) => {
     return checkIsInWishlist(productId);
   };
 
-  const handleClearWishlist = () => {
-    clearWishlistService();
-    setWishlist(getWishlistService());
+  const handleClearWishlist = async () => {
+    await clearWishlistService();
+    setWishlist(await getWishlistService());
   };
 
   const value = {
     wishlist,
+    isLoading,
     addToWishlist: handleAddToWishlist,
     removeFromWishlist: handleRemoveFromWishlist,
     isInWishlist: handleIsInWishlist,

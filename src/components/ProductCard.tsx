@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,14 +15,23 @@ interface ProductCardProps {
 const ProductCard = ({ product }: ProductCardProps) => {
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const [isLiked, setIsLiked] = useState(isInWishlist(product.id));
+  const [isLiked, setIsLiked] = useState(false);
+  
+  useEffect(() => {
+    const checkWishlist = async () => {
+      const inWishlist = await isInWishlist(product.id);
+      setIsLiked(inWishlist);
+    };
+    
+    checkWishlist();
+  }, [product.id, isInWishlist]);
 
-  const handleWishlist = () => {
-    if (isInWishlist(product.id)) {
-      removeFromWishlist(product.id);
+  const handleWishlist = async () => {
+    if (await isInWishlist(product.id)) {
+      await removeFromWishlist(product.id);
       setIsLiked(false);
     } else {
-      addToWishlist(product);
+      await addToWishlist(product);
       setIsLiked(true);
     }
   };

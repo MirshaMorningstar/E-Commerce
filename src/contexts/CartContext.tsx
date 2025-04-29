@@ -10,13 +10,15 @@ import {
   clearCart as clearCartService
 } from '../services/cartService';
 import { Product } from '../services/productService';
+import { useAuth } from './AuthContext';
 
 type CartContextType = {
   cart: Cart;
-  addToCart: (product: Product, quantity?: number) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  removeFromCart: (productId: string) => void;
-  clearCart: () => void;
+  isLoading: boolean;
+  addToCart: (product: Product, quantity?: number) => Promise<void>;
+  updateQuantity: (productId: string, quantity: number) => Promise<void>;
+  removeFromCart: (productId: string) => Promise<void>;
+  clearCart: () => Promise<void>;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -31,48 +33,48 @@ export const useCart = () => {
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<Cart>({ items: [], totalItems: 0, subtotal: 0 });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const loadCart = () => {
-      const currentCart = getCartService();
-      setCart(currentCart);
+    const loadCart = async () => {
+      setIsLoading(true);
+      try {
+        const currentCart = await getCartService();
+        setCart(currentCart);
+      } catch (error) {
+        console.error("Error loading cart:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
     
     loadCart();
-    
-    window.addEventListener('storage', (event) => {
-      if (event.key === 'cart') {
-        loadCart();
-      }
-    });
-    
-    return () => {
-      window.removeEventListener('storage', () => {});
-    };
-  }, []);
+  }, [isAuthenticated, user]);
 
-  const handleAddToCart = (product: Product, quantity: number = 1) => {
-    addToCartService(product, quantity);
-    setCart(getCartService());
+  const handleAddToCart = async (product: Product, quantity: number = 1) => {
+    await addToCartService(product, quantity);
+    setCart(await getCartService());
   };
 
-  const handleUpdateQuantity = (productId: string, quantity: number) => {
-    updateQuantityService(productId, quantity);
-    setCart(getCartService());
+  const handleUpdateQuantity = async (productId: string, quantity: number) => {
+    await updateQuantityService(productId, quantity);
+    setCart(await getCartService());
   };
 
-  const handleRemoveFromCart = (productId: string) => {
-    removeFromCartService(productId);
-    setCart(getCartService());
+  const handleRemoveFromCart = async (productId: string) => {
+    await removeFromCartService(productId);
+    setCart(await getCartService());
   };
 
-  const handleClearCart = () => {
-    clearCartService();
-    setCart(getCartService());
+  const handleClearCart = async () => {
+    await clearCartService();
+    setCart(await getCartService());
   };
 
   const value = {
     cart,
+    isLoading,
     addToCart: handleAddToCart,
     updateQuantity: handleUpdateQuantity,
     removeFromCart: handleRemoveFromCart,
