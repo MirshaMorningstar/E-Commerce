@@ -137,19 +137,19 @@ const Footer = () => {
                 <Link to="/faq" className="text-sage-600 hover:text-sage-800 transition-colors">FAQ</Link>
               </li>
               <li>
-                <Link to="/shipping" className="text-sage-600 hover:text-sage-800 transition-colors">Shipping Policy</Link>
+                <Link to="/shipping-policy" className="text-sage-600 hover:text-sage-800 transition-colors">Shipping Policy</Link>
               </li>
               <li>
-                <Link to="/returns" className="text-sage-600 hover:text-sage-800 transition-colors">Returns & Exchanges</Link>
+                <Link to="/returns-exchanges" className="text-sage-600 hover:text-sage-800 transition-colors">Returns & Exchanges</Link>
               </li>
               <li>
                 <Link to="/track-order" className="text-sage-600 hover:text-sage-800 transition-colors">Track Order</Link>
               </li>
               <li>
-                <Link to="/privacy" className="text-sage-600 hover:text-sage-800 transition-colors">Privacy Policy</Link>
+                <Link to="/privacy-policy" className="text-sage-600 hover:text-sage-800 transition-colors">Privacy Policy</Link>
               </li>
               <li>
-                <Link to="/terms" className="text-sage-600 hover:text-sage-800 transition-colors">Terms & Conditions</Link>
+                <Link to="/terms-conditions" className="text-sage-600 hover:text-sage-800 transition-colors">Terms & Conditions</Link>
               </li>
             </ul>
           </div>

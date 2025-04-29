@@ -335,9 +335,9 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
 };
 
 // Get product reviews
-export const getProductReviews = async (productId: string) => {
+export const getProductReviews = async (productId: string): Promise<ProductReview[]> => {
   try {
-    const { data, error } = await supabase
+    const { data: reviews, error } = await supabase
       .from('reviews')
       .select(`
         *,
@@ -347,23 +347,26 @@ export const getProductReviews = async (productId: string) => {
           avatar_url
         )
       `)
-      .eq('product_id', productId)
-      .order('created_at', { ascending: false });
-    
+      .eq('product_id', productId);
+
     if (error) throw error;
-    
-    return data.map(review => ({
+
+    if (!reviews || reviews.length === 0) return [];
+
+    return reviews.map(review => ({
       id: review.id,
       rating: review.rating,
       comment: review.comment,
       date: new Date(review.created_at),
       user: {
         name: review.profiles && 
+              review.profiles !== null &&
               typeof review.profiles === 'object' && 
               'first_name' in review.profiles ? 
               `${review.profiles.first_name || ''} ${review.profiles.last_name || ''}`.trim() : 
               'Anonymous User',
         avatar: review.profiles && 
+                review.profiles !== null &&
                 typeof review.profiles === 'object' && 
                 'avatar_url' in review.profiles ? 
                 review.profiles.avatar_url : 

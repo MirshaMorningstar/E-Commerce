@@ -25,6 +25,10 @@ import Cart from "./pages/Cart";
 import Wishlist from "./pages/Wishlist";
 import TrackOrder from "./pages/TrackOrder";
 import ReturnsExchanges from "./pages/ReturnsExchanges";
+import FAQ from "./pages/FAQ";
+import ShippingPolicy from "./pages/ShippingPolicy";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsConditions from "./pages/TermsConditions";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +59,10 @@ const App = () => (
                 <Route path="/wishlist" element={<Wishlist />} />
                 <Route path="/track-order" element={<TrackOrder />} />
                 <Route path="/returns-exchanges" element={<ReturnsExchanges />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/shipping-policy" element={<ShippingPolicy />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-conditions" element={<TermsConditions />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
