@@ -1,92 +1,126 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 
-export type Product = {
+export interface Category {
+  id: string;
+  name: string;
+  image: string;
+  subcategories: string[];
+}
+
+export interface Product {
   id: string;
   name: string;
   brand: string;
   category: string;
-  subcategory: string;
+  subcategory?: string;
   price: number;
   oldPrice?: number;
   description: string;
   rating: number;
   reviews: number;
   images: string[];
-  tags: string[];
+  tags?: string[];
   isNew?: boolean;
   isFeatured?: boolean;
   isOnSale?: boolean;
+  isBestseller?: boolean;
   stock: number;
-};
+}
 
-export type Category = {
-  id: string;
-  name: string;
-  image: string;
-  subcategories: string[];
-};
-
-// Map categories with images
-const categories: Category[] = [
-  {
-    id: "cat1",
-    name: "Skincare",
-    image: "https://images.unsplash.com/photo-1571875257727-256c39da42af?q=80&w=800",
-    subcategories: ["Cleansers", "Moisturizers", "Serums", "Face Masks", "Eye Care"]
-  },
-  {
-    id: "cat2",
-    name: "Makeup",
-    image: "https://images.unsplash.com/photo-1596704017254-9b121068fb31?q=80&w=800",
-    subcategories: ["Foundation", "Lipstick", "Mascara", "Eyeshadow", "Blush"]
-  },
-  {
-    id: "cat3",
-    name: "Haircare",
-    image: "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?q=80&w=800",
-    subcategories: ["Shampoo", "Conditioner", "Hair Masks", "Styling", "Hair Color"]
-  },
-  {
-    id: "cat4",
-    name: "Fragrance",
-    image: "https://images.unsplash.com/photo-1617897903246-719242758050?q=80&w=800",
-    subcategories: ["Perfumes", "Body Mists", "Colognes", "Gift Sets"]
-  },
-  {
-    id: "cat5",
-    name: "Bath & Body",
-    image: "https://images.unsplash.com/photo-1570194065650-d682c124132b?q=80&w=800",
-    subcategories: ["Body Wash", "Lotion", "Scrubs", "Bath Bombs", "Hand Care"]
-  },
-  {
-    id: "cat6",
-    name: "Tools",
-    image: "https://images.unsplash.com/photo-1522338242992-e1a54906a8da?q=80&w=800",
-    subcategories: ["Brushes", "Sponges", "Curlers", "Hair Dryers", "Face Tools"]
-  }
-];
-
-// Utility function to map database product to Product type
-const mapDatabaseProductToProduct = (dbProduct: any): Product => {
+// Helper function to map database product to Product type
+export const mapDatabaseProductToProduct = (dbProduct: any): Product => {
   return {
     id: dbProduct.id,
     name: dbProduct.name,
     brand: dbProduct.brand || "",
     category: dbProduct.category,
-    subcategory: dbProduct.category, // Using category as subcategory 
+    subcategory: dbProduct.category, // Using category as subcategory since we don't have subcategory in DB
     price: dbProduct.price,
     oldPrice: dbProduct.is_sale ? dbProduct.price * (1 + dbProduct.discount_percentage / 100) : undefined,
     description: dbProduct.description || "",
-    rating: 4.5, // Default rating
+    rating: 5, // Default rating since we don't have ratings yet
     reviews: 0, // Default reviews count
-    images: [dbProduct.image_url],
+    images: dbProduct.image_url ? [dbProduct.image_url] : [],
     tags: [dbProduct.category, dbProduct.brand].filter(Boolean),
     isNew: dbProduct.is_new,
     isFeatured: dbProduct.is_featured,
     isOnSale: dbProduct.is_sale,
+    isBestseller: dbProduct.is_bestseller,
     stock: dbProduct.stock_quantity
   };
+};
+
+// Get all categories
+export const getAllCategories = async (): Promise<Category[]> => {
+  try {
+    // Get unique categories from products
+    const { data, error } = await supabase
+      .from('products')
+      .select('category')
+      .order('category');
+      
+    if (error) throw error;
+    
+    // Extract unique categories
+    const uniqueCategories = Array.from(new Set(data.map(item => item.category)));
+    
+    // Create category objects
+    return uniqueCategories.map((category, index) => ({
+      id: `category-${index + 1}`,
+      name: category,
+      image: `https://i.pravatar.cc/300?img=${index + 20}`, // Placeholder image
+      subcategories: [] // We don't have subcategories yet
+    }));
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    
+    // Return mock categories if we couldn't fetch from the database
+    return [
+      {
+        id: "skincare",
+        name: "Skincare",
+        image: "https://i.pravatar.cc/300?img=20",
+        subcategories: ["Cleansers", "Moisturizers", "Serums"]
+      },
+      {
+        id: "makeup",
+        name: "Makeup",
+        image: "https://i.pravatar.cc/300?img=21",
+        subcategories: ["Face", "Eyes", "Lips"]
+      },
+      {
+        id: "haircare",
+        name: "Haircare",
+        image: "https://i.pravatar.cc/300?img=22",
+        subcategories: ["Shampoo", "Conditioner", "Styling"]
+      },
+      {
+        id: "fragrances",
+        name: "Fragrances",
+        image: "https://i.pravatar.cc/300?img=23",
+        subcategories: ["Perfumes", "Body Sprays", "Gift Sets"]
+      },
+      {
+        id: "tools",
+        name: "Tools",
+        image: "https://i.pravatar.cc/300?img=24",
+        subcategories: ["Brushes", "Sponges", "Accessories"]
+      },
+      {
+        id: "bath-body",
+        name: "Bath & Body",
+        image: "https://i.pravatar.cc/300?img=25",
+        subcategories: ["Shower Gels", "Body Lotions", "Hand Care"]
+      }
+    ];
+  }
+};
+
+// Get category by ID
+export const getCategoryById = async (id: string): Promise<Category | null> => {
+  const categories = await getAllCategories();
+  return categories.find(category => category.id === id) || null;
 };
 
 // Get all products
@@ -94,16 +128,35 @@ export const getAllProducts = async (): Promise<Product[]> => {
   try {
     const { data, error } = await supabase
       .from('products')
-      .select('*');
+      .select('*')
+      .order('name');
       
-    if (error) {
-      console.error("Error fetching products:", error);
-      return [];
-    }
+    if (error) throw error;
     
     return data.map(mapDatabaseProductToProduct);
-  } catch (err) {
-    console.error("Error in getAllProducts:", err);
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return [];
+  }
+};
+
+// Get products by category
+export const getProductsByCategory = async (categoryId: string): Promise<Product[]> => {
+  try {
+    const category = await getCategoryById(categoryId);
+    if (!category) return [];
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('category', category.name)
+      .order('name');
+      
+    if (error) throw error;
+    
+    return data.map(mapDatabaseProductToProduct);
+  } catch (error) {
+    console.error("Error fetching products by category:", error);
     return [];
   }
 };
@@ -114,16 +167,14 @@ export const getFeaturedProducts = async (): Promise<Product[]> => {
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('is_featured', true);
+      .eq('is_featured', true)
+      .order('name');
       
-    if (error) {
-      console.error("Error fetching featured products:", error);
-      return [];
-    }
+    if (error) throw error;
     
     return data.map(mapDatabaseProductToProduct);
-  } catch (err) {
-    console.error("Error in getFeaturedProducts:", err);
+  } catch (error) {
+    console.error("Error fetching featured products:", error);
     return [];
   }
 };
@@ -134,42 +185,56 @@ export const getNewProducts = async (): Promise<Product[]> => {
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('is_new', true);
+      .eq('is_new', true)
+      .order('name');
       
-    if (error) {
-      console.error("Error fetching new products:", error);
-      return [];
-    }
+    if (error) throw error;
     
     return data.map(mapDatabaseProductToProduct);
-  } catch (err) {
-    console.error("Error in getNewProducts:", err);
+  } catch (error) {
+    console.error("Error fetching new products:", error);
     return [];
   }
 };
 
-// Get products on sale
-export const getOnSaleProducts = async (): Promise<Product[]> => {
+// Get bestseller products
+export const getBestsellers = async (): Promise<Product[]> => {
   try {
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('is_sale', true);
+      .eq('is_bestseller', true)
+      .order('name');
       
-    if (error) {
-      console.error("Error fetching sale products:", error);
-      return [];
-    }
+    if (error) throw error;
     
     return data.map(mapDatabaseProductToProduct);
-  } catch (err) {
-    console.error("Error in getOnSaleProducts:", err);
+  } catch (error) {
+    console.error("Error fetching bestseller products:", error);
+    return [];
+  }
+};
+
+// Get sale products
+export const getSaleProducts = async (): Promise<Product[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_sale', true)
+      .order('name');
+      
+    if (error) throw error;
+    
+    return data.map(mapDatabaseProductToProduct);
+  } catch (error) {
+    console.error("Error fetching sale products:", error);
     return [];
   }
 };
 
 // Get product by ID
-export const getProductById = async (id: string): Promise<Product | undefined> => {
+export const getProductById = async (id: string): Promise<Product | null> => {
   try {
     const { data, error } = await supabase
       .from('products')
@@ -177,71 +242,48 @@ export const getProductById = async (id: string): Promise<Product | undefined> =
       .eq('id', id)
       .single();
       
-    if (error) {
-      console.error("Error fetching product by ID:", error);
-      return undefined;
-    }
+    if (error) throw error;
     
     return mapDatabaseProductToProduct(data);
-  } catch (err) {
-    console.error("Error in getProductById:", err);
-    return undefined;
+  } catch (error) {
+    console.error("Error fetching product by ID:", error);
+    return null;
   }
 };
 
-// Get products by category
-export const getProductsByCategory = async (category: string): Promise<Product[]> => {
+// Get related products
+export const getRelatedProducts = async (product: Product): Promise<Product[]> => {
   try {
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('category', category);
+      .eq('category', product.category)
+      .neq('id', product.id)
+      .limit(4)
+      .order('name');
       
-    if (error) {
-      console.error("Error fetching products by category:", error);
-      return [];
-    }
+    if (error) throw error;
     
     return data.map(mapDatabaseProductToProduct);
-  } catch (err) {
-    console.error("Error in getProductsByCategory:", err);
+  } catch (error) {
+    console.error("Error fetching related products:", error);
     return [];
   }
-};
-
-// Get products by subcategory (using category since we don't have subcategory in DB)
-export const getProductsBySubcategory = async (subcategory: string): Promise<Product[]> => {
-  // Since we don't have subcategories in our database, we're using category
-  return getProductsByCategory(subcategory);
 };
 
 // Search products
 export const searchProducts = async (query: string): Promise<Product[]> => {
   try {
-    const lowerCaseQuery = query.toLowerCase();
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .or(`name.ilike.%${lowerCaseQuery}%,description.ilike.%${lowerCaseQuery}%,brand.ilike.%${lowerCaseQuery}%,category.ilike.%${lowerCaseQuery}%`);
+      .ilike('name', `%${query}%`);
       
-    if (error) {
-      console.error("Error searching products:", error);
-      return [];
-    }
+    if (error) throw error;
     
     return data.map(mapDatabaseProductToProduct);
-  } catch (err) {
-    console.error("Error in searchProducts:", err);
+  } catch (error) {
+    console.error("Error searching products:", error);
     return [];
   }
-};
-
-// Get all categories
-export const getAllCategories = (): Category[] => {
-  return categories;
-};
-
-// Get category by ID
-export const getCategoryById = (id: string): Category | undefined => {
-  return categories.find(category => category.id === id);
 };
