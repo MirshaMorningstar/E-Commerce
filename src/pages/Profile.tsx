@@ -59,14 +59,19 @@ const Profile = () => {
           
         if (error) {
           console.error("Error fetching profile:", error.message);
-          // Create default profile values instead of trying to use error object
-          setProfile({
+          // Create default profile values instead of throwing an error
+          const defaultProfile: Profile = {
             first_name: '',
             last_name: '',
             avatar_url: '',
             address: '',
             phone_number: ''
-          });
+          };
+          setProfile(defaultProfile);
+          setFirstName('');
+          setLastName('');
+          setAddress('');
+          setPhoneNumber('');
           return;
         }
         
