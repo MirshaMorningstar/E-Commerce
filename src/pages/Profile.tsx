@@ -51,6 +51,9 @@ const Profile = () => {
       try {
         if (!user) return;
         
+        // First, check if we need to update the profiles table schema
+        await ensureProfileTableHasRequiredColumns();
+        
         const { data, error } = await supabase
           .from('profiles')
           .select('first_name, last_name, avatar_url, address, phone_number')
@@ -95,6 +98,35 @@ const Profile = () => {
     }
   }, [user, isAuthenticated, isLoading, navigate, toast]);
   
+  // Function to ensure the profiles table has address and phone_number columns
+  const ensureProfileTableHasRequiredColumns = async () => {
+    try {
+      // Check if the columns exist first to avoid unnecessary operations
+      const { error: addressError } = await supabase
+        .from('profiles')
+        .update({ address: '' })
+        .eq('id', 'check-columns-exist')
+        .select();
+        
+      if (addressError && addressError.message.includes("column 'address' does not exist")) {
+        // Add address column with RLS policies
+        const { error } = await supabase.rpc('add_missing_profile_columns');
+        if (error) {
+          console.error("Error adding columns:", error.message);
+          
+          // Fallback: If RPC fails, handle gracefully
+          toast({
+            title: "Profile Update",
+            description: "Some profile fields may not be available. Please contact support.",
+            variant: "default",
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error("Error checking profile table schema:", error.message);
+    }
+  };
+  
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -103,6 +135,7 @@ const Profile = () => {
     setIsUpdating(true);
     
     try {
+      // Try to update with all fields
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -113,12 +146,30 @@ const Profile = () => {
         })
         .eq('id', user.id);
         
-      if (error) throw error;
-      
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been updated successfully."
-      });
+      if (error) {
+        // If error occurs, try updating only fields that are known to exist
+        console.error("Full profile update failed:", error.message);
+        
+        const { error: basicUpdateError } = await supabase
+          .from('profiles')
+          .update({
+            first_name: firstName,
+            last_name: lastName,
+          })
+          .eq('id', user.id);
+          
+        if (basicUpdateError) throw basicUpdateError;
+        
+        toast({
+          title: "Profile Partially Updated",
+          description: "Basic information updated. Some fields couldn't be saved."
+        });
+      } else {
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been updated successfully."
+        });
+      }
       
       // Update local profile state
       setProfile(prev => prev ? { 

@@ -14,6 +14,14 @@ export type NewUser = {
   password: string;
 };
 
+export type ProfileUpdate = {
+  first_name?: string;
+  last_name?: string;
+  avatar_url?: string;
+  address?: string;
+  phone_number?: string;
+};
+
 // Check if user is logged in
 export const isLoggedIn = async (): Promise<boolean> => {
   const { data } = await supabase.auth.getSession();
@@ -71,6 +79,13 @@ export const register = async (newUser: NewUser): Promise<User> => {
     throw error;
   }
   
+  // Ensure profile table has required columns
+  try {
+    await supabase.rpc('add_missing_profile_columns');
+  } catch (error) {
+    console.error("Failed to ensure profile columns:", error);
+  }
+  
   // Update profile with user's name
   const { error: profileError } = await supabase
     .from('profiles')
@@ -105,4 +120,67 @@ export const logout = async (): Promise<void> => {
     title: "Logged Out",
     description: "You have been logged out successfully.",
   });
+};
+
+// Update profile with robust error handling
+export const updateProfile = async (userId: string, profile: ProfileUpdate): Promise<any> => {
+  try {
+    // First ensure the columns exist
+    try {
+      await supabase.rpc('add_missing_profile_columns');
+    } catch (error) {
+      console.warn("Could not ensure profile columns exist:", error);
+    }
+    
+    // Attempt full update
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(profile)
+      .eq('id', userId)
+      .select();
+      
+    if (error) {
+      console.error("Profile update error:", error);
+      
+      // If failed, try updating only basic fields
+      if (profile.first_name || profile.last_name || profile.avatar_url) {
+        const basicProfile = {
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          avatar_url: profile.avatar_url
+        };
+        
+        const { data: basicData, error: basicError } = await supabase
+          .from('profiles')
+          .update(basicProfile)
+          .eq('id', userId)
+          .select();
+          
+        if (basicError) throw basicError;
+        
+        toast({
+          title: "Basic Profile Updated",
+          description: "Only basic information was updated. Extended fields couldn't be saved."
+        });
+        
+        return basicData;
+      }
+      
+      throw error;
+    }
+    
+    toast({
+      title: "Profile Updated",
+      description: "Your profile has been updated successfully."
+    });
+    
+    return data;
+  } catch (error: any) {
+    toast({
+      title: "Profile Update Failed",
+      description: error.message || "An error occurred while updating your profile",
+      variant: "destructive"
+    });
+    throw error;
+  }
 };
