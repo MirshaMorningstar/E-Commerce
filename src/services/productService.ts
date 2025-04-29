@@ -365,22 +365,24 @@ export const getProductReviews = async (productId: string): Promise<ProductRevie
 
     if (!reviews || reviews.length === 0) return [];
 
-    return reviews.map(review => ({
-      id: review.id,
-      rating: review.rating,
-      comment: review.comment,
-      date: new Date(review.created_at),
-      user: {
-        name: review.profiles && 
-              typeof review.profiles === 'object' ? 
-              `${review.profiles?.first_name || ''} ${review.profiles?.last_name || ''}`.trim() || 'Anonymous User' : 
-              'Anonymous User',
-        avatar: review.profiles && 
-                typeof review.profiles === 'object' ? 
-                review.profiles?.avatar_url || null : 
-                null
-      }
-    }));
+    return reviews.map(review => {
+      // Safely check if profiles exists and is an object
+      const profiles = review.profiles as any;
+      const firstName = profiles && typeof profiles === 'object' ? profiles.first_name || '' : '';
+      const lastName = profiles && typeof profiles === 'object' ? profiles.last_name || '' : '';
+      const avatarUrl = profiles && typeof profiles === 'object' ? profiles.avatar_url || null : null;
+      
+      return {
+        id: review.id,
+        rating: review.rating,
+        comment: review.comment,
+        date: new Date(review.created_at),
+        user: {
+          name: `${firstName} ${lastName}`.trim() || 'Anonymous User',
+          avatar: avatarUrl
+        }
+      };
+    });
   } catch (error) {
     console.error("Error fetching product reviews:", error);
     return [];

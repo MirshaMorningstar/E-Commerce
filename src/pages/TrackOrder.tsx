@@ -54,6 +54,7 @@ type Order = {
   estimatedDelivery?: string;
 };
 
+// Updated mock orders with correct image paths
 const mockOrders: Order[] = [
   {
     id: "1",
@@ -68,7 +69,7 @@ const mockOrders: Order[] = [
         name: "Organic Face Serum",
         price: 49.95,
         quantity: 1,
-        image: "https://sfxdyshvyjjalfgcipnd.supabase.co/storage/v1/object/public/products/serum2.jpg"
+        image: "https://i.pravatar.cc/300?img=20"
       },
       {
         id: "item2", 
@@ -76,7 +77,7 @@ const mockOrders: Order[] = [
         name: "Eco-friendly Bamboo Brush Set",
         price: 75.00,
         quantity: 1,
-        image: "https://sfxdyshvyjjalfgcipnd.supabase.co/storage/v1/object/public/products/brush-set.jpg"
+        image: "https://i.pravatar.cc/300?img=21"
       }
     ],
     trackingNumber: "TRK4586237",
@@ -95,7 +96,7 @@ const mockOrders: Order[] = [
         name: "Vegan Lip Balm Collection",
         price: 32.99,
         quantity: 1,
-        image: "https://sfxdyshvyjjalfgcipnd.supabase.co/storage/v1/object/public/products/lip-balm.jpg"
+        image: "https://i.pravatar.cc/300?img=22"
       },
       {
         id: "item4",
@@ -103,7 +104,7 @@ const mockOrders: Order[] = [
         name: "Natural Exfoliating Scrub",
         price: 33.00,
         quantity: 1,
-        image: "https://sfxdyshvyjjalfgcipnd.supabase.co/storage/v1/object/public/products/scrub.jpg"
+        image: "https://i.pravatar.cc/300?img=23"
       }
     ],
     trackingNumber: "TRK7891234",
@@ -362,7 +363,11 @@ const TrackOrder = () => {
                                 <img 
                                   src={item.image} 
                                   alt={item.name} 
-                                  className="w-16 h-16 object-cover rounded-md" 
+                                  className="w-16 h-16 object-cover rounded-md"
+                                  onError={(e) => {
+                                    // Fallback if image fails to load
+                                    (e.target as HTMLImageElement).src = "https://placehold.co/100x100?text=Product";
+                                  }}
                                 />
                                 <div className="flex-grow">
                                   <h4 className="font-medium">{item.name}</h4>
@@ -446,7 +451,11 @@ const TrackOrder = () => {
                               <img 
                                 src={item.image} 
                                 alt={item.name} 
-                                className="w-12 h-12 object-cover rounded-md" 
+                                className="w-12 h-12 object-cover rounded-md"
+                                onError={(e) => {
+                                  // Fallback if image fails to load
+                                  (e.target as HTMLImageElement).src = "https://placehold.co/100x100?text=Product";
+                                }}
                               />
                               <div className="flex-grow">
                                 <h4 className="font-medium">{item.name}</h4>
