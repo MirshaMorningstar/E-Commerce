@@ -274,10 +274,27 @@ export const getRelatedProducts = async (product: Product): Promise<Product[]> =
 // Search products
 export const searchProducts = async (query: string): Promise<Product[]> => {
   try {
-    const { data, error } = await supabase
+    // Tokenize the search query
+    const searchTerms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    
+    if (searchTerms.length === 0) {
+      return [];
+    }
+    
+    // Construct the search query for multiple fields
+    // Using multiple .or() conditions to search across name, category, description, and brand
+    let searchQuery = supabase
       .from('products')
-      .select('*')
-      .ilike('name', `%${query}%`);
+      .select('*');
+    
+    // Add search conditions for each term
+    for (const term of searchTerms) {
+      searchQuery = searchQuery.or(
+        `name.ilike.%${term}%,category.ilike.%${term}%,description.ilike.%${term}%,brand.ilike.%${term}%`
+      );
+    }
+    
+    const { data, error } = await searchQuery.limit(10); // Limit to 10 results
       
     if (error) throw error;
     

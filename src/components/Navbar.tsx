@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Heart, User, Search, Menu, X, Leaf } from 'lucide-react';
+import { ShoppingBag, Heart, User, Menu, X, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { SearchBar } from './SearchBar';
 
 type NavLinkProps = {
   to: string;
@@ -37,9 +37,9 @@ const NavLink = ({ to, children, className, onClick }: NavLinkProps) => {
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const { cart } = useCart();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
@@ -54,14 +54,8 @@ const Navbar = () => {
   useEffect(() => {
     // Close mobile menu when route changes
     setIsMobileMenuOpen(false);
+    setShowMobileSearch(false);
   }, [location]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
-    }
-  };
 
   return (
     <header
@@ -94,21 +88,9 @@ const Navbar = () => {
             <NavLink to="/sale">Sale</NavLink>
           </nav>
 
-          {/* Search, User, Wishlist, Cart Icons */}
+          {/* Desktop Search, User, Wishlist, Cart Icons */}
           <div className="hidden md:flex items-center gap-4">
-            <form onSubmit={handleSearch} className="relative">
-              <Input
-                type="search"
-                placeholder="Search..."
-                className="w-[200px] rounded-full pr-8 border-sage-200 focus-visible:ring-sage-500"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <Search 
-                className="absolute right-2.5 top-2.5 h-4 w-4 text-sage-500" 
-                onClick={() => handleSearch}
-              />
-            </form>
+            <SearchBar />
             <Link to={isAuthenticated ? "/account" : "/login"} className="text-sage-700 hover:text-sage-900">
               <Button variant="ghost" size="icon" className="rounded-full">
                 <User className="h-5 w-5" />
@@ -147,9 +129,17 @@ const Navbar = () => {
               variant="ghost" 
               size="icon"
               className="rounded-full"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={() => {
+                if (showMobileSearch) {
+                  setShowMobileSearch(false);
+                } else {
+                  setIsMobileMenuOpen(!isMobileMenuOpen);
+                }
+              }}
             >
-              {isMobileMenuOpen ? (
+              {showMobileSearch ? (
+                <X className="h-6 w-6 text-sage-700" />
+              ) : isMobileMenuOpen ? (
                 <X className="h-6 w-6 text-sage-700" />
               ) : (
                 <Menu className="h-6 w-6 text-sage-700" />
@@ -158,28 +148,28 @@ const Navbar = () => {
           </div>
         </div>
 
+        {/* Mobile Search Bar */}
+        {showMobileSearch && (
+          <div className="md:hidden mt-4">
+            <SearchBar isMobile onClose={() => setShowMobileSearch(false)} />
+          </div>
+        )}
+
         {/* Mobile Menu */}
-        {isMobileMenuOpen && (
+        {isMobileMenuOpen && !showMobileSearch && (
           <div className="md:hidden mt-4 py-4 bg-white rounded-2xl shadow-lg animate-slide-in">
-            <form onSubmit={handleSearch} className="px-4 mb-4">
-              <div className="relative">
-                <Input
-                  type="search"
-                  placeholder="Search..."
-                  className="w-full rounded-full pr-8 border-sage-200"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <Button 
-                  type="submit" 
-                  size="icon" 
-                  variant="ghost"
-                  className="absolute right-0 top-0 rounded-full"
-                >
-                  <Search className="h-4 w-4 text-sage-500" />
-                </Button>
-              </div>
-            </form>
+            <div className="px-4 mb-4">
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center justify-center gap-2 text-sage-700"
+                onClick={() => {
+                  setShowMobileSearch(true);
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <span>Search products</span>
+              </Button>
+            </div>
             <div className="flex flex-col space-y-1 px-4">
               <NavLink to="/" className="py-2">Home</NavLink>
               <NavLink to="/shop" className="py-2">Shop</NavLink>

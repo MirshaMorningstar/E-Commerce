@@ -18,6 +18,7 @@ import Bestsellers from "./pages/Bestsellers";
 import NewArrivals from "./pages/NewArrivals";
 import Sale from "./pages/Sale";
 import ProductDetail from "./pages/ProductDetail";
+import Search from "./pages/Search";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 
@@ -43,6 +44,7 @@ const App = () => (
                 <Route path="/bestsellers" element={<Bestsellers />} />
                 <Route path="/new" element={<NewArrivals />} />
                 <Route path="/sale" element={<Sale />} />
+                <Route path="/search" element={<Search />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
