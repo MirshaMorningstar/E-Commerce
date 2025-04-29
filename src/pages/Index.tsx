@@ -1,13 +1,44 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from 'react';
+import Layout from '@/components/Layout';
+import Hero from '@/components/Hero';
+import CategorySection from '@/components/CategorySection';
+import FeaturedProducts from '@/components/FeaturedProducts';
+import PromoBanner from '@/components/PromoBanner';
+import Testimonials from '@/components/Testimonials';
+import Newsletter from '@/components/Newsletter';
+import { getNewProducts } from '@/services/productService';
+import SectionTitle from '@/components/SectionTitle';
+import ProductGrid from '@/components/ProductGrid';
 
 const Index = () => {
+  const newProducts = getNewProducts();
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <Layout>
+      <Hero />
+      
+      <CategorySection />
+      
+      <FeaturedProducts />
+      
+      <PromoBanner />
+      
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <SectionTitle 
+            title="New Arrivals" 
+            subtitle="The latest additions to our collection"
+            center
+          />
+          <ProductGrid products={newProducts} columns={4} />
+        </div>
+      </section>
+      
+      <Testimonials />
+      
+      <Newsletter />
+    </Layout>
   );
 };
 
