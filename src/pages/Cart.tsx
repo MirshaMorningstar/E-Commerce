@@ -17,7 +17,7 @@ import { Trash2, Plus, Minus, ArrowRight, CheckCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { createOrder as createOrderService } from '@/services/cartService';
 
 type CheckoutStep = 'cart' | 'shipping' | 'payment' | 'confirmation';
 
@@ -118,68 +118,6 @@ const Cart = () => {
     setCurrentStep('payment');
   };
   
-  const createOrder = async () => {
-    if (!user?.id) {
-      toast({
-        title: "Authentication Error",
-        description: "You must be logged in to place an order.",
-        variant: "destructive",
-      });
-      return null;
-    }
-    
-    try {
-      // Create a new order in the orders table
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          user_id: user.id,
-          total_amount: total,
-          status: 'pending',
-          shipping_address: shippingInfo,
-          payment_intent_id: `sim_${Math.random().toString(36).substring(2, 15)}`, // Simulated payment ID
-        })
-        .select('id')
-        .single();
-      
-      if (orderError) {
-        console.error("Error creating order:", orderError);
-        throw new Error(orderError.message);
-      }
-      
-      if (!orderData) {
-        throw new Error("Failed to create order");
-      }
-      
-      // Create entries in the order_items table for each item
-      const orderItems = cart.items.map(item => ({
-        order_id: orderData.id,
-        product_id: item.productId,
-        quantity: item.quantity,
-        price_at_purchase: item.product.price
-      }));
-      
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-      
-      if (itemsError) {
-        console.error("Error adding order items:", itemsError);
-        throw new Error(itemsError.message);
-      }
-      
-      return orderData.id;
-    } catch (error) {
-      console.error("Error in createOrder:", error);
-      toast({
-        title: "Order Failed",
-        description: "There was an error processing your order. Please try again.",
-        variant: "destructive",
-      });
-      return null;
-    }
-  };
-  
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -201,11 +139,31 @@ const Cart = () => {
       // Simulate payment processing (2 seconds)
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Create the order in the database
-      const newOrderId = await createOrder();
+      if (!user?.id) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to place an order.",
+          variant: "destructive",
+        });
+        setIsProcessing(false);
+        return;
+      }
+      
+      // Create the order in the database using the service function
+      const newOrderId = await createOrderService(
+        user.id,
+        total,
+        shippingInfo,
+        cart.items
+      );
       
       if (!newOrderId) {
         setIsProcessing(false);
+        toast({
+          title: "Order Failed",
+          description: "There was an error processing your order. Please try again.",
+          variant: "destructive",
+        });
         return;
       }
       

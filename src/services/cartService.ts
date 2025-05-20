@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "./productService";
@@ -289,4 +288,58 @@ const mapDatabaseProductToProduct = (dbProduct: any): Product => {
     isOnSale: dbProduct.is_sale,
     stock: dbProduct.stock_quantity
   };
+};
+
+// New function to create an order in the database
+export const createOrder = async (
+  userId: string,
+  totalAmount: number,
+  shippingInfo: any,
+  cartItems: CartItem[]
+): Promise<string | null> => {
+  try {
+    // Create a new order in the orders table
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        user_id: userId,
+        total_amount: totalAmount,
+        status: 'pending',
+        shipping_address: shippingInfo,
+        payment_intent_id: `sim_${Math.random().toString(36).substring(2, 15)}`, // Simulated payment ID
+      })
+      .select('id')
+      .single();
+    
+    if (orderError) {
+      console.error("Error creating order:", orderError);
+      throw new Error(orderError.message);
+    }
+    
+    if (!orderData) {
+      throw new Error("Failed to create order");
+    }
+    
+    // Create entries in the order_items table for each item
+    const orderItems = cartItems.map(item => ({
+      order_id: orderData.id,
+      product_id: item.productId,
+      quantity: item.quantity,
+      price_at_purchase: item.product.price
+    }));
+    
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
+    
+    if (itemsError) {
+      console.error("Error adding order items:", itemsError);
+      throw new Error(itemsError.message);
+    }
+    
+    return orderData.id;
+  } catch (error) {
+    console.error("Error in createOrder:", error);
+    return null;
+  }
 };
