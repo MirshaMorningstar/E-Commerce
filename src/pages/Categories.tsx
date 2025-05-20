@@ -35,7 +35,8 @@ const Categories = () => {
           id: `category-${index}`,
           name: categoryName,
           image: `/categories/${categoryName.toLowerCase().replace(/\s+/g, '-')}.jpg`,
-          description: `Explore our ${categoryName} collection`
+          description: `Explore our ${categoryName} collection`,
+          subcategories: []
         }));
         
         setCategories(categoryObjects);

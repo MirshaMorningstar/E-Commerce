@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -24,12 +23,13 @@ type CheckoutStep = 'cart' | 'shipping' | 'payment' | 'confirmation';
 
 const Cart = () => {
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('cart');
   const [couponCode, setCouponCode] = useState<string>('');
   const [couponApplied, setCouponApplied] = useState<boolean>(false);
   const [discount, setDiscount] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [orderId, setOrderId] = useState<string>('');
   
   // Shipping form state
   const [shippingInfo, setShippingInfo] = useState({
@@ -118,7 +118,69 @@ const Cart = () => {
     setCurrentStep('payment');
   };
   
-  const handlePaymentSubmit = (e: React.FormEvent) => {
+  const createOrder = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to place an order.",
+        variant: "destructive",
+      });
+      return null;
+    }
+    
+    try {
+      // Create a new order in the orders table
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          total_amount: total,
+          status: 'pending',
+          shipping_address: shippingInfo,
+          payment_intent_id: `sim_${Math.random().toString(36).substring(2, 15)}`, // Simulated payment ID
+        })
+        .select('id')
+        .single();
+      
+      if (orderError) {
+        console.error("Error creating order:", orderError);
+        throw new Error(orderError.message);
+      }
+      
+      if (!orderData) {
+        throw new Error("Failed to create order");
+      }
+      
+      // Create entries in the order_items table for each item
+      const orderItems = cart.items.map(item => ({
+        order_id: orderData.id,
+        product_id: item.productId,
+        quantity: item.quantity,
+        price_at_purchase: item.product.price
+      }));
+      
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+      
+      if (itemsError) {
+        console.error("Error adding order items:", itemsError);
+        throw new Error(itemsError.message);
+      }
+      
+      return orderData.id;
+    } catch (error) {
+      console.error("Error in createOrder:", error);
+      toast({
+        title: "Order Failed",
+        description: "There was an error processing your order. Please try again.",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+  
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Simple validation
@@ -135,14 +197,31 @@ const Cart = () => {
     
     setIsProcessing(true);
     
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsProcessing(false);
-      setCurrentStep('confirmation');
+    try {
+      // Simulate payment processing (2 seconds)
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // In a real app, we would save the order to the database here
+      // Create the order in the database
+      const newOrderId = await createOrder();
+      
+      if (!newOrderId) {
+        setIsProcessing(false);
+        return;
+      }
+      
+      setOrderId(newOrderId);
+      setCurrentStep('confirmation');
       clearCart();
-    }, 2000);
+    } catch (error) {
+      console.error("Error processing payment:", error);
+      toast({
+        title: "Payment Failed",
+        description: "There was an error processing your payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
   const handleShippingMethodChange = (value: string) => {
@@ -701,7 +780,7 @@ const Cart = () => {
             <p className="text-gray-600 mb-6">Your order has been placed successfully.</p>
             
             <div className="bg-sage-50 rounded-md p-4 text-left mb-6">
-              <h3 className="font-medium mb-2">Order #EG-{Math.floor(Math.random() * 10000).toString().padStart(4, '0')}</h3>
+              <h3 className="font-medium mb-2">Order #{orderId.slice(0, 8).toUpperCase()}</h3>
               <p className="text-sm mb-1">A confirmation email has been sent to your email address.</p>
               <p className="text-sm">You can track your order status in the "Track Order" section.</p>
             </div>
@@ -709,12 +788,12 @@ const Cart = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 variant="outline"
-                onClick={() => navigate('/track-order')}
+                onClick={() => navigate(`/track-order?id=${orderId}`)}
               >
                 Track Your Order
               </Button>
               <Button 
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/shop')}
               >
                 Continue Shopping
               </Button>
