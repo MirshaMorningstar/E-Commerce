@@ -29,7 +29,7 @@ const Hero = () => {
                 <Link to="/shop">Shop Now</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="border-sage-600 text-sage-600 hover:bg-sage-50 rounded-full px-8">
-                <Link to="/bestsellers">Bestsellers</Link>
+                <Link to="/category/category-1">Explore Skincare</Link>
               </Button>
             </div>
             

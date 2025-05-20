@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Star } from 'lucide-react';
+import { Star, Trash } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { getProductReviews, submitProductReview } from '@/services/productService';
+import { getProductReviews, submitProductReview, deleteProductReview } from '@/services/productService';
 
 interface ProductReviewsProps {
   productId: string;
@@ -21,6 +21,7 @@ interface Review {
     name: string;
     avatar: string | null;
   };
+  userId?: string;
 }
 
 const ProductReviews = ({ productId, onReviewsUpdated }: ProductReviewsProps) => {
@@ -28,6 +29,7 @@ const ProductReviews = ({ productId, onReviewsUpdated }: ProductReviewsProps) =>
   const [userRating, setUserRating] = useState(5);
   const [reviewText, setReviewText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
@@ -36,7 +38,18 @@ const ProductReviews = ({ productId, onReviewsUpdated }: ProductReviewsProps) =>
     try {
       setLoading(true);
       const productReviews = await getProductReviews(productId);
-      setReviews(productReviews);
+      
+      // Add userId to reviews for current user's reviews
+      const enhancedReviews = productReviews.map(review => {
+        // Get user_id from the database response if available
+        const userId = (review as any).user_id;
+        return {
+          ...review,
+          userId
+        };
+      });
+      
+      setReviews(enhancedReviews);
     } catch (error) {
       console.error('Error loading reviews:', error);
     } finally {
@@ -93,7 +106,7 @@ const ProductReviews = ({ productId, onReviewsUpdated }: ProductReviewsProps) =>
       setUserRating(5);
       setReviewText('');
       
-      // Reload reviews
+      // Reload reviews and update product rating
       await loadReviews();
       onReviewsUpdated();
     } catch (error: any) {
@@ -104,6 +117,39 @@ const ProductReviews = ({ productId, onReviewsUpdated }: ProductReviewsProps) =>
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!isAuthenticated || !user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to delete a review.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsDeleting(reviewId);
+      await deleteProductReview(reviewId);
+      
+      toast({
+        title: "Review Deleted",
+        description: "Your review has been removed.",
+      });
+      
+      // Reload reviews and update product rating
+      await loadReviews();
+      onReviewsUpdated();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete review.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -120,6 +166,8 @@ const ProductReviews = ({ productId, onReviewsUpdated }: ProductReviewsProps) =>
       day: 'numeric'
     }).format(date);
   };
+
+  const userHasReview = user && reviews.some(review => review.userId === user.id);
 
   return (
     <div className="space-y-6">
@@ -140,7 +188,7 @@ const ProductReviews = ({ productId, onReviewsUpdated }: ProductReviewsProps) =>
         <span className="text-gray-500">Based on {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</span>
       </div>
       
-      {isAuthenticated && (
+      {isAuthenticated && !userHasReview && (
         <div className="border rounded-lg p-6 bg-gray-50">
           <h3 className="font-semibold mb-4">Write a Review</h3>
           <div className="mb-4">
@@ -226,7 +274,20 @@ const ProductReviews = ({ productId, onReviewsUpdated }: ProductReviewsProps) =>
                         ))}
                       </div>
                     </div>
-                    <div className="text-sm text-gray-500">{formatDate(review.date)}</div>
+                    <div className="flex items-start gap-2">
+                      <div className="text-sm text-gray-500">{formatDate(review.date)}</div>
+                      {user && review.userId === user.id && (
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-7 w-7 text-red-500 hover:text-red-600"
+                          onClick={() => handleDeleteReview(review.id)}
+                          disabled={isDeleting === review.id}
+                        >
+                          <Trash size={14} />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <p className="text-gray-600">
                     {review.comment}

@@ -12,6 +12,7 @@ import { toast } from "@/components/ui/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getProfile, updateProfile, uploadProfilePicture, ProfileData } from '@/services/profileService';
+import OrderHistory from '@/components/OrderHistory';
 
 const Profile = () => {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -375,9 +376,7 @@ const Profile = () => {
                   <CardTitle>Order History</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground text-center py-6">
-                    You have no order history yet.
-                  </p>
+                  <OrderHistory />
                 </CardContent>
               </Card>
             </TabsContent>

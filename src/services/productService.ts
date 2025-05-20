@@ -76,13 +76,21 @@ export const getAllCategories = async (): Promise<Category[]> => {
     // Extract unique categories
     const uniqueCategories = Array.from(new Set(data.map(item => item.category)));
     
-    // Create category objects
-    return uniqueCategories.map((category, index) => ({
+    // Create category objects with correct IDs
+    const categories = uniqueCategories.map((category, index) => ({
       id: `category-${index + 1}`,
       name: category,
       image: `https://i.pravatar.cc/300?img=${index + 20}`, // Placeholder image
       subcategories: [] // We don't have subcategories yet
     }));
+
+    // Fetch product counts for each category
+    for (const category of categories) {
+      const count = await getProductCountByCategory(category.id);
+      category.subcategories = Array(count).fill('').map((_, i) => `Product ${i+1}`);
+    }
+    
+    return categories;
   } catch (error) {
     console.error("Error fetching categories:", error);
     
@@ -359,7 +367,8 @@ export const getProductReviews = async (productId: string): Promise<ProductRevie
           avatar_url
         )
       `)
-      .eq('product_id', productId);
+      .eq('product_id', productId)
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
 
@@ -412,6 +421,96 @@ export const submitProductReview = async (
     return data[0];
   } catch (error) {
     console.error("Error submitting review:", error);
+    throw error;
+  }
+};
+
+// Delete a review
+export const deleteProductReview = async (reviewId: string) => {
+  try {
+    const { error } = await supabase
+      .from('reviews')
+      .delete()
+      .eq('id', reviewId);
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting review:", error);
+    throw error;
+  }
+};
+
+// Get order by ID
+export const getOrderById = async (orderId: string) => {
+  try {
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+    
+    if (error) throw error;
+    
+    // Get order items
+    const { data: items, error: itemsError } = await supabase
+      .from('order_items')
+      .select(`
+        *,
+        products (*)
+      `)
+      .eq('order_id', orderId);
+    
+    if (itemsError) throw itemsError;
+    
+    return {
+      ...order,
+      items: items.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        price: item.price_at_purchase,
+        product: mapDatabaseProductToProduct(item.products)
+      }))
+    };
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    throw error;
+  }
+};
+
+// Get user orders
+export const getUserOrders = async (userId: string) => {
+  try {
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    return orders;
+  } catch (error) {
+    console.error("Error fetching user orders:", error);
+    throw error;
+  }
+};
+
+// Update order status
+export const updateOrderStatus = async (orderId: string, status: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ status })
+      .eq('id', orderId)
+      .select();
+    
+    if (error) throw error;
+    
+    return data[0];
+  } catch (error) {
+    console.error("Error updating order status:", error);
     throw error;
   }
 };

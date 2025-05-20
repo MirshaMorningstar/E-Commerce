@@ -1,111 +1,115 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
-import { User } from '@supabase/supabase-js';
-import { uploadFile } from './storageService';
 
-export type ProfileData = {
+export interface ProfileData {
   first_name?: string;
   last_name?: string;
   address?: string;
   phone_number?: string;
-  avatar_url?: string;
-};
+}
 
-export const getProfile = async (userId: string) => {
+export async function getProfile(userId: string) {
   try {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
-    
-    if (error) throw error;
-    
+
+    if (error) {
+      throw error;
+    }
+
     return data;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching profile:', error);
-    toast({
-      title: 'Error',
-      description: 'Failed to load profile information',
-      variant: 'destructive',
-    });
     return null;
   }
-};
+}
 
-export const updateProfile = async (userId: string, profileData: ProfileData) => {
+export async function updateProfile(userId: string, profileData: ProfileData) {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
-      .update(profileData)
-      .eq('id', userId);
-    
-    if (error) throw error;
-    
-    toast({
-      title: 'Profile Updated',
-      description: 'Your profile has been updated successfully',
-    });
-    
-    return true;
-  } catch (error: any) {
-    console.error('Error updating profile:', error);
-    toast({
-      title: 'Error',
-      description: error.message || 'Failed to update profile',
-      variant: 'destructive',
-    });
-    return false;
-  }
-};
+      .update({
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
+        address: profileData.address,
+        phone_number: profileData.phone_number,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId)
+      .select();
 
-export const uploadProfilePicture = async (userId: string, file: File) => {
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    throw error;
+  }
+}
+
+export async function uploadProfilePicture(userId: string, file: File) {
   try {
-    // Create a unique file name
+    // Check if we already have an existing avatar to replace it
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', userId)
+      .single();
+
+    // If there's an existing avatar, remove it first
+    if (profile?.avatar_url) {
+      const oldPath = profile.avatar_url.split('/').pop();
+      if (oldPath) {
+        const { error: removeError } = await supabase.storage
+          .from('avatars')
+          .remove([oldPath]);
+          
+        if (removeError) {
+          console.warn('Failed to remove old avatar:', removeError);
+        }
+      }
+    }
+
+    // Upload the new file
     const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `${fileName}`;
+    const filePath = `${userId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
     
-    // Upload the file using the storage service
-    const avatarUrl = await uploadFile('profiles', filePath, file);
-    
-    // Update the user's profile with the new avatar URL
+    const { error: uploadError, data } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file, {
+        upsert: true,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    // Get the public URL
+    const { data: publicUrl } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    // Update the user profile with the new avatar URL
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ avatar_url: avatarUrl })
+      .update({
+        avatar_url: publicUrl.publicUrl,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', userId);
-    
-    if (updateError) throw updateError;
-    
-    toast({
-      title: 'Profile Picture Updated',
-      description: 'Your profile picture has been updated successfully',
-    });
-    
-    return avatarUrl;
-  } catch (error: any) {
-    // If there's an error, try using the fallback to UI Avatars
-    console.error('Error uploading profile picture:', error);
-    
-    // Get user details to create a fallback avatar
-    const { data: userData } = await supabase.auth.getUser();
-    const name = userData?.user?.user_metadata?.name || 'User';
-    
-    const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
-    
-    // Update the profile with the fallback avatar
-    await supabase
-      .from('profiles')
-      .update({ avatar_url: fallbackAvatarUrl })
-      .eq('id', userId);
-    
-    toast({
-      title: 'Profile Picture Error',
-      description: 'Failed to upload profile picture. A default avatar has been set.',
-      variant: 'destructive',
-    });
-    
-    return fallbackAvatarUrl;
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return publicUrl.publicUrl;
+  } catch (error) {
+    console.error('Error uploading avatar:', error);
+    throw error;
   }
-};
+}
