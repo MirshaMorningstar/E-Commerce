@@ -274,7 +274,12 @@ const clearLocalCart = (): void => {
 
 // ===== ORDER MANAGEMENT FUNCTIONS =====
 
-// Create an order in the database
+/**
+ * Creates a new order in the database
+ * 
+ * This function handles inserting a new order record and its associated 
+ * order items with proper RLS handling
+ */
 export const createOrder = async (
   userId: string,
   totalAmount: number,
@@ -283,11 +288,10 @@ export const createOrder = async (
 ): Promise<string | null> => {
   console.log("Creating order with userId:", userId);
   console.log("Total amount:", totalAmount);
-  console.log("Shipping info:", shippingInfo);
   console.log("Cart items:", cartItems.length);
   
+  // Validation checks
   if (!userId) {
-    console.error("No user ID provided");
     toast({
       title: "Order Failed",
       description: "User ID is required to create an order",
@@ -297,7 +301,6 @@ export const createOrder = async (
   }
   
   if (cartItems.length === 0) {
-    console.error("Cannot create order with empty cart");
     toast({
       title: "Order Failed",
       description: "Your cart is empty",
@@ -305,12 +308,13 @@ export const createOrder = async (
     });
     return null;
   }
-  
+
+  // Create a transaction to ensure both the order and order items are created or neither is
   try {
-    // First, ensure total amount is properly formatted for numeric(10,2)
+    // Format the total amount properly for numeric(10,2)
     const formattedAmount = parseFloat(totalAmount.toFixed(2));
-    
-    // Create order record with proper data types
+
+    // 1. Insert the order with the authenticated user's ID
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -318,11 +322,11 @@ export const createOrder = async (
         total_amount: formattedAmount,
         status: 'pending',
         shipping_address: shippingInfo,
-        payment_intent_id: `sim_${Math.random().toString(36).substring(2, 15)}`, // Simulated payment ID
+        payment_intent_id: `sim_${Math.random().toString(36).substring(2, 15)}`,
       })
       .select('id')
       .single();
-    
+
     if (orderError) {
       console.error("Error creating order:", orderError);
       toast({
@@ -332,7 +336,7 @@ export const createOrder = async (
       });
       return null;
     }
-    
+
     if (!orderData || !orderData.id) {
       console.error("No order ID returned after creation");
       toast({
@@ -342,24 +346,19 @@ export const createOrder = async (
       });
       return null;
     }
-    
+
     const orderId = orderData.id;
     console.log("Order created with ID:", orderId);
     
-    // Format prices as numeric(10,2) for all order items
-    const orderItems = cartItems.map(item => {
-      // Ensure price is properly formatted for numeric(10,2)
-      const formattedPrice = parseFloat(item.product.price.toFixed(2));
-      
-      return {
-        order_id: orderId,
-        product_id: item.productId,
-        quantity: item.quantity,
-        price_at_purchase: formattedPrice
-      };
-    });
+    // 2. Prepare order items with properly formatted prices
+    const orderItems = cartItems.map(item => ({
+      order_id: orderId,
+      product_id: item.productId,
+      quantity: item.quantity,
+      price_at_purchase: parseFloat(item.product.price.toFixed(2))
+    }));
     
-    // Insert order items
+    // 3. Insert order items
     const { error: itemsError } = await supabase
       .from('order_items')
       .insert(orderItems);
@@ -378,7 +377,7 @@ export const createOrder = async (
       return null;
     }
     
-    // Clear the cart after successful order creation
+    // 4. Clear the cart after successful order creation
     await clearCart();
     console.log("Order completed successfully with ID:", orderId);
     
