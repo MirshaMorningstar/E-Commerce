@@ -61,91 +61,72 @@ export const mapDatabaseProductToProduct = (dbProduct: any): Product => {
   };
 };
 
-// Get all categories
+// Get all categories with proper images from products
 export const getAllCategories = async (): Promise<Category[]> => {
   try {
     // Get unique categories from products
-    const { data, error } = await supabase
+    const { data: categoryData, error: categoryError } = await supabase
       .from('products')
       .select('category')
       .order('category');
       
-    if (error) throw error;
+    if (categoryError) throw categoryError;
+    
+    if (!categoryData || categoryData.length === 0) {
+      return [];
+    }
     
     // Extract unique categories
-    const uniqueCategories = Array.from(new Set(data.map(item => item.category)));
+    const uniqueCategories = Array.from(new Set(categoryData.map(item => item.category)));
+    const categoriesWithImages: Category[] = [];
     
-    // Create category objects with correct IDs
-    const categories = uniqueCategories.map((category, index) => ({
-      id: `category-${index + 1}`,
-      name: category,
-      image: `https://i.pravatar.cc/300?img=${index + 20}`, // Placeholder image
-      subcategories: [] // We don't have subcategories yet
-    }));
+    // For each category, get a representative image from a product in that category
+    for (let i = 0; i < uniqueCategories.length; i++) {
+      const categoryName = uniqueCategories[i];
+      
+      // Get one product from this category to use its image
+      const { data: productData, error: productError } = await supabase
+        .from('products')
+        .select('image_url')
+        .eq('category', categoryName)
+        .limit(1)
+        .single();
+        
+      if (productError) {
+        console.error(`Error fetching image for category ${categoryName}:`, productError);
+      }
+      
+      categoriesWithImages.push({
+        id: `category-${i + 1}`,
+        name: categoryName,
+        image: productData?.image_url || `https://placehold.co/600x400?text=${encodeURIComponent(categoryName)}`,
+        subcategories: [] // We don't have subcategories yet
+      });
+    }
     
-    return categories;
+    return categoriesWithImages;
   } catch (error) {
     console.error("Error fetching categories:", error);
-    
-    // Return mock categories if we couldn't fetch from the database
-    return [
-      {
-        id: "skincare",
-        name: "Skincare",
-        image: "https://i.pravatar.cc/300?img=20",
-        subcategories: ["Cleansers", "Moisturizers", "Serums"]
-      },
-      {
-        id: "makeup",
-        name: "Makeup",
-        image: "https://i.pravatar.cc/300?img=21",
-        subcategories: ["Face", "Eyes", "Lips"]
-      },
-      {
-        id: "haircare",
-        name: "Haircare",
-        image: "https://i.pravatar.cc/300?img=22",
-        subcategories: ["Shampoo", "Conditioner", "Styling"]
-      },
-      {
-        id: "fragrances",
-        name: "Fragrances",
-        image: "https://i.pravatar.cc/300?img=23",
-        subcategories: ["Perfumes", "Body Sprays", "Gift Sets"]
-      },
-      {
-        id: "tools",
-        name: "Tools",
-        image: "https://i.pravatar.cc/300?img=24",
-        subcategories: ["Brushes", "Sponges", "Accessories"]
-      },
-      {
-        id: "bath-body",
-        name: "Bath & Body",
-        image: "https://i.pravatar.cc/300?img=25",
-        subcategories: ["Shower Gels", "Body Lotions", "Hand Care"]
-      }
-    ];
+    return [];
   }
 };
 
-// Get product count by category
+// Get product count by category - Using actual category name instead of ID
 export const getProductCountByCategory = async (categoryId: string): Promise<number> => {
   try {
-    // Extract the category name from the ID (e.g., "category-1" -> index 0)
-    const categoryIndex = parseInt(categoryId.split('-')[1]) - 1;
+    // Extract the category name based on the id
+    const categories = await getAllCategories();
+    const category = categories.find(cat => cat.id === categoryId);
     
-    const allCategories = await getAllCategories();
-    if (categoryIndex < 0 || categoryIndex >= allCategories.length) {
+    if (!category) {
       return 0;
     }
     
-    const categoryName = allCategories[categoryIndex].name;
-    
+    // Count products with this category name
     const { count, error } = await supabase
       .from('products')
       .select('*', { count: 'exact', head: true })
-      .eq('category', categoryName);
+      .eq('category', category.name);
       
     if (error) throw error;
     

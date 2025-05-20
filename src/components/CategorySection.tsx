@@ -13,12 +13,14 @@ const CategorySection = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadCategories = async () => {
+    const loadData = async () => {
       try {
+        setLoading(true);
+        // Get all categories first
         const fetchedCategories = await getAllCategories();
         setCategories(fetchedCategories);
         
-        // Get product counts for each category
+        // Then get product counts for each category
         const counts: Record<string, number> = {};
         for (const category of fetchedCategories) {
           const count = await getProductCountByCategory(category.id);
@@ -32,7 +34,7 @@ const CategorySection = () => {
       }
     };
 
-    loadCategories();
+    loadData();
   }, []);
 
   return (

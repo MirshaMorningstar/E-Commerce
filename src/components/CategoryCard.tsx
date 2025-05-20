@@ -9,7 +9,7 @@ interface CategoryCardProps {
   productCount?: number;
 }
 
-const CategoryCard = ({ category, productCount }: CategoryCardProps) => {
+const CategoryCard = ({ category, productCount = 0 }: CategoryCardProps) => {
   return (
     <Link 
       to={`/category/${category.id}`} 
@@ -20,6 +20,11 @@ const CategoryCard = ({ category, productCount }: CategoryCardProps) => {
           src={category.image} 
           alt={category.name} 
           className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
+          onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+            const target = e.target as HTMLImageElement;
+            target.onerror = null; // Prevent infinite loop
+            target.src = `https://placehold.co/600x400?text=${encodeURIComponent(category.name)}`;
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-sage-800/70 to-transparent flex flex-col justify-end p-4">
           <div className="absolute top-3 left-3 bg-sage-50/80 backdrop-blur-sm p-1.5 rounded-full">
@@ -29,7 +34,7 @@ const CategoryCard = ({ category, productCount }: CategoryCardProps) => {
             {category.name}
           </h3>
           <p className="text-white/80 text-sm mb-2">
-            {productCount ?? category.subcategories.length} {productCount === 1 ? 'product' : 'products'}
+            {productCount} {productCount === 1 ? 'product' : 'products'}
           </p>
           <div className="flex items-center text-white/90 text-sm group-hover:text-beige-100 transition-colors">
             <span>Shop now</span>

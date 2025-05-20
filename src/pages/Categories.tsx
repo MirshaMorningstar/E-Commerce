@@ -3,8 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import CategoryCard from '@/components/CategoryCard';
 import SectionTitle from '@/components/SectionTitle';
-import { Category } from '@/services/productService';
-import { supabase } from '@/integrations/supabase/client'; 
+import { Category, getAllCategories, getProductCountByCategory } from '@/services/productService';
 
 const Categories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -15,43 +14,16 @@ const Categories = () => {
     const loadCategories = async () => {
       try {
         setLoading(true);
-        // Get all categories from the products table
-        const { data, error } = await supabase
-          .from('products')
-          .select('category');
-          
-        if (error) throw error;
-        
-        if (!data) {
-          setCategories([]);
-          return;
-        }
-        
-        // Extract unique categories using Set
-        const uniqueCategories = Array.from(new Set(data.map(item => item.category)));
-        
-        // Transform into Category objects
-        const categoryObjects: Category[] = uniqueCategories.map((categoryName, index) => ({
-          id: `category-${index}`,
-          name: categoryName,
-          image: `/categories/${categoryName.toLowerCase().replace(/\s+/g, '-')}.jpg`,
-          description: `Explore our ${categoryName} collection`,
-          subcategories: []
-        }));
-        
-        setCategories(categoryObjects);
+        // Get all categories with proper images from products table
+        const fetchedCategories = await getAllCategories();
+        setCategories(fetchedCategories);
         
         // Get product counts for each category
         const counts: Record<string, number> = {};
-        for (const category of categoryObjects) {
-          const { count, error } = await supabase
-            .from('products')
-            .select('id', { count: 'exact', head: true })
-            .eq('category', category.name);
-            
-          counts[category.id] = count || 0;
+        for (const category of fetchedCategories) {
+          const count = await getProductCountByCategory(category.id);
+          counts[category.id] = count;
         }
-        
         setProductCounts(counts);
       } catch (error) {
         console.error("Error loading categories:", error);
