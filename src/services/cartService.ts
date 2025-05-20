@@ -291,7 +291,7 @@ const mapDatabaseProductToProduct = (dbProduct: any): Product => {
   };
 };
 
-// New function to create an order in the database
+// Create an order in the database
 export const createOrder = async (
   userId: string,
   totalAmount: number,
@@ -299,8 +299,15 @@ export const createOrder = async (
   cartItems: CartItem[]
 ): Promise<string | null> => {
   try {
-    // Begin transaction
-    const { data: order, error: orderError } = await supabase
+    console.log("Creating order with data:", {
+      userId,
+      totalAmount,
+      shippingInfo,
+      cartItemCount: cartItems.length
+    });
+    
+    // First create the order record
+    const { data: orderData, error: orderError } = await supabase
       .from('orders')
       .insert({
         user_id: userId,
@@ -314,39 +321,64 @@ export const createOrder = async (
     
     if (orderError) {
       console.error("Error creating order:", orderError);
-      throw new Error(orderError.message);
+      toast({
+        title: "Order Failed",
+        description: `Failed to create order: ${orderError.message}`,
+        variant: "destructive",
+      });
+      return null;
     }
     
-    if (!order || !order.id) {
-      throw new Error("Failed to create order - no ID returned");
+    if (!orderData || !orderData.id) {
+      console.error("No order ID returned after creation");
+      toast({
+        title: "Order Failed",
+        description: "Failed to create order - no order ID returned",
+        variant: "destructive",
+      });
+      return null;
     }
     
-    // Create entries in the order_items table for each item
+    const orderId = orderData.id;
+    console.log("Order created with ID:", orderId);
+    
+    // Prepare order items for insertion
     const orderItems = cartItems.map(item => ({
-      order_id: order.id,
+      order_id: orderId,
       product_id: item.productId,
       quantity: item.quantity,
       price_at_purchase: item.product.price
     }));
     
+    // Insert order items
     const { error: itemsError } = await supabase
       .from('order_items')
       .insert(orderItems);
     
     if (itemsError) {
       console.error("Error adding order items:", itemsError);
-      throw new Error(itemsError.message);
+      
+      // Clean up the order if items insertion fails
+      await supabase.from('orders').delete().eq('id', orderId);
+      
+      toast({
+        title: "Order Failed",
+        description: `Failed to add order items: ${itemsError.message}`,
+        variant: "destructive",
+      });
+      return null;
     }
     
-    // After successfully creating the order and order items, clear the cart
+    // Clear the cart after successful order creation
     await clearCart();
+    console.log("Order completed successfully");
     
-    return order.id;
+    return orderId;
   } catch (error) {
-    console.error("Error in createOrder:", error);
+    console.error("Unexpected error in createOrder:", error);
     toast({
       title: "Order Failed",
-      description: "There was an error processing your order. Please try again.",
+      description: "There was an unexpected error processing your order. Please try again.",
       variant: "destructive",
     });
     return null;
