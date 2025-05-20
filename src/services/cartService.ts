@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Product } from "./productService";
 import { getCurrentUser } from "./authService";
 
+// Types
 export type CartItem = {
   productId: string;
   quantity: number;
@@ -15,6 +16,8 @@ export type Cart = {
   totalItems: number;
   subtotal: number;
 };
+
+// ===== CART MANAGEMENT FUNCTIONS =====
 
 // Get cart
 export const getCart = async (): Promise<Cart> => {
@@ -269,27 +272,7 @@ const clearLocalCart = (): void => {
   saveLocalCart({ items: [], totalItems: 0, subtotal: 0 });
 };
 
-// Utility function to map database product to Product type
-const mapDatabaseProductToProduct = (dbProduct: any): Product => {
-  return {
-    id: dbProduct.id,
-    name: dbProduct.name,
-    brand: dbProduct.brand || "",
-    category: dbProduct.category,
-    subcategory: dbProduct.category, // Using category as subcategory since we don't have subcategory in DB
-    price: dbProduct.price,
-    oldPrice: dbProduct.is_sale ? dbProduct.price * (1 + dbProduct.discount_percentage / 100) : undefined,
-    description: dbProduct.description || "",
-    rating: 5, // Default rating
-    reviews: 0, // Default reviews count
-    images: [dbProduct.image_url],
-    tags: [dbProduct.category, dbProduct.brand].filter(Boolean),
-    isNew: dbProduct.is_new,
-    isFeatured: dbProduct.is_featured,
-    isOnSale: dbProduct.is_sale,
-    stock: dbProduct.stock_quantity
-  };
-};
+// ===== ORDER MANAGEMENT FUNCTIONS =====
 
 // Create an order in the database
 export const createOrder = async (
@@ -298,20 +281,41 @@ export const createOrder = async (
   shippingInfo: any,
   cartItems: CartItem[]
 ): Promise<string | null> => {
-  try {
-    console.log("Creating order with data:", {
-      userId,
-      totalAmount,
-      shippingInfo,
-      cartItemCount: cartItems.length
+  console.log("Creating order with userId:", userId);
+  console.log("Total amount:", totalAmount);
+  console.log("Shipping info:", shippingInfo);
+  console.log("Cart items:", cartItems.length);
+  
+  if (!userId) {
+    console.error("No user ID provided");
+    toast({
+      title: "Order Failed",
+      description: "User ID is required to create an order",
+      variant: "destructive",
     });
+    return null;
+  }
+  
+  if (cartItems.length === 0) {
+    console.error("Cannot create order with empty cart");
+    toast({
+      title: "Order Failed",
+      description: "Your cart is empty",
+      variant: "destructive",
+    });
+    return null;
+  }
+  
+  try {
+    // First, ensure total amount is properly formatted for numeric(10,2)
+    const formattedAmount = parseFloat(totalAmount.toFixed(2));
     
-    // First create the order record
+    // Create order record with proper data types
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
       .insert({
         user_id: userId,
-        total_amount: totalAmount,
+        total_amount: formattedAmount,
         status: 'pending',
         shipping_address: shippingInfo,
         payment_intent_id: `sim_${Math.random().toString(36).substring(2, 15)}`, // Simulated payment ID
@@ -342,13 +346,18 @@ export const createOrder = async (
     const orderId = orderData.id;
     console.log("Order created with ID:", orderId);
     
-    // Prepare order items for insertion
-    const orderItems = cartItems.map(item => ({
-      order_id: orderId,
-      product_id: item.productId,
-      quantity: item.quantity,
-      price_at_purchase: item.product.price
-    }));
+    // Format prices as numeric(10,2) for all order items
+    const orderItems = cartItems.map(item => {
+      // Ensure price is properly formatted for numeric(10,2)
+      const formattedPrice = parseFloat(item.product.price.toFixed(2));
+      
+      return {
+        order_id: orderId,
+        product_id: item.productId,
+        quantity: item.quantity,
+        price_at_purchase: formattedPrice
+      };
+    });
     
     // Insert order items
     const { error: itemsError } = await supabase
@@ -371,10 +380,10 @@ export const createOrder = async (
     
     // Clear the cart after successful order creation
     await clearCart();
-    console.log("Order completed successfully");
+    console.log("Order completed successfully with ID:", orderId);
     
     return orderId;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Unexpected error in createOrder:", error);
     toast({
       title: "Order Failed",
@@ -383,4 +392,28 @@ export const createOrder = async (
     });
     return null;
   }
+};
+
+// ===== UTILITY FUNCTIONS =====
+
+// Utility function to map database product to Product type
+const mapDatabaseProductToProduct = (dbProduct: any): Product => {
+  return {
+    id: dbProduct.id,
+    name: dbProduct.name,
+    brand: dbProduct.brand || "",
+    category: dbProduct.category,
+    subcategory: dbProduct.category, // Using category as subcategory since we don't have subcategory in DB
+    price: dbProduct.price,
+    oldPrice: dbProduct.is_sale ? dbProduct.price * (1 + dbProduct.discount_percentage / 100) : undefined,
+    description: dbProduct.description || "",
+    rating: 5, // Default rating
+    reviews: 0, // Default reviews count
+    images: [dbProduct.image_url],
+    tags: [dbProduct.category, dbProduct.brand].filter(Boolean),
+    isNew: dbProduct.is_new,
+    isFeatured: dbProduct.is_featured,
+    isOnSale: dbProduct.is_sale,
+    stock: dbProduct.stock_quantity
+  };
 };
