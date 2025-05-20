@@ -18,6 +18,7 @@ import { Trash2, Plus, Minus, ArrowRight, CheckCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 type CheckoutStep = 'cart' | 'shipping' | 'payment' | 'confirmation';
 

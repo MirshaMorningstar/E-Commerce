@@ -8,10 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
-import { getOrderById, updateOrderStatus } from '@/services/productService';
 import { format } from 'date-fns';
 import { CheckCheck, Package, Truck, Home, Clock, X } from 'lucide-react';
 import { Json } from '@/integrations/supabase/types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface OrderItem {
   id: string;
@@ -32,18 +32,19 @@ interface Order {
   created_at: string;
   updated_at: string;
   total_amount: number;
-  items: OrderItem[];
-  shipping_address?: Json | null; // Updated to accept Json type from Supabase
+  items?: OrderItem[];
+  shipping_address?: Json | null;
+  payment_intent_id?: string | null;
 }
 
 // Interface to strongly type shipping address properties
 interface ShippingAddress {
-  name?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  country?: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
 }
 
 const TrackOrder = () => {
@@ -53,6 +54,8 @@ const TrackOrder = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [cancelReason, setCancelReason] = useState<string>('');
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -66,8 +69,44 @@ const TrackOrder = () => {
     setError(null);
     
     try {
-      const orderData = await getOrderById(id);
-      setOrder(orderData as Order); // Ensure we cast to the Order type
+      // Fetch the order directly from Supabase
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (orderError) throw new Error('Order not found');
+      
+      if (!orderData) {
+        throw new Error('Order not found');
+      }
+      
+      // Now fetch order items
+      const { data: orderItemsData, error: itemsError } = await supabase
+        .from('order_items')
+        .select('*, product:products(*)')
+        .eq('order_id', id);
+      
+      if (itemsError) throw itemsError;
+      
+      // Prepare complete order data with items
+      const completeOrder: Order = {
+        ...orderData,
+        items: orderItemsData ? orderItemsData.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          price: item.price_at_purchase,
+          product: {
+            id: item.product.id,
+            name: item.product.name,
+            images: [item.product.image_url], // Convert image_url to images array
+            price: item.product.price
+          }
+        })) : []
+      };
+      
+      setOrder(completeOrder);
       
       // Update the URL with the order ID
       if (!searchParams.has('id')) {
@@ -88,13 +127,16 @@ const TrackOrder = () => {
 
   // Helper function to safely extract shipping address properties
   const getShippingAddressProperty = (address: Json | null | undefined, property: keyof ShippingAddress): string => {
-    if (!address || typeof address !== 'object' || Array.isArray(address)) {
-      return '';
+    if (!address) return '';
+    
+    // Check if address is an object
+    if (typeof address === 'object' && !Array.isArray(address)) {
+      // Safe access to property using type assertion
+      const addressObj = address as Record<string, unknown>;
+      return (addressObj[property] as string) || '';
     }
-
-    // Safe access to property using bracket notation
-    const typedAddress = address as Record<string, Json>;
-    return typedAddress[property]?.toString() || '';
+    
+    return '';
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -115,8 +157,20 @@ const TrackOrder = () => {
     
     setUpdatingStatus(true);
     try {
-      await updateOrderStatus(order.id, 'cancelled');
+      // Update the order status in Supabase
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          status: 'cancelled',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', order.id);
+      
+      if (error) throw error;
+      
       setOrder({ ...order, status: 'cancelled' });
+      setShowCancelDialog(false);
+      
       toast({
         title: "Order Cancelled",
         description: "Your order has been successfully cancelled.",
@@ -220,6 +274,49 @@ const TrackOrder = () => {
     );
   };
 
+  // Cancel order dialog
+  const renderCancelDialog = () => {
+    if (!showCancelDialog) return null;
+    
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+          <h3 className="font-bold text-lg mb-4">Cancel Order</h3>
+          <p className="mb-4">Please tell us why you're cancelling this order:</p>
+          
+          <select 
+            className="w-full p-2 border rounded mb-4" 
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+          >
+            <option value="">Select a reason</option>
+            <option value="Changed mind">I changed my mind</option>
+            <option value="Found better price">Found a better price elsewhere</option>
+            <option value="Ordered by mistake">Ordered by mistake</option>
+            <option value="Shipping too slow">Shipping time is too long</option>
+            <option value="Other">Other reason</option>
+          </select>
+          
+          <div className="flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowCancelDialog(false)}
+            >
+              Go Back
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleCancelOrder}
+              disabled={!cancelReason || updatingStatus}
+            >
+              {updatingStatus ? "Processing..." : "Confirm Cancellation"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-16">
@@ -304,11 +401,11 @@ const TrackOrder = () => {
                     <Button
                       variant="outline"
                       className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
-                      onClick={handleCancelOrder}
+                      onClick={() => setShowCancelDialog(true)}
                       disabled={updatingStatus}
                     >
                       <X size={16} className="mr-1" /> 
-                      {updatingStatus ? "Cancelling..." : "Cancel Order"}
+                      Cancel Order
                     </Button>
                   </div>
                 )}
@@ -364,6 +461,7 @@ const TrackOrder = () => {
           </div>
         ) : null}
       </div>
+      {renderCancelDialog()}
     </Layout>
   );
 };

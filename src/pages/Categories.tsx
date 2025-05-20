@@ -4,6 +4,7 @@ import Layout from '@/components/Layout';
 import CategoryCard from '@/components/CategoryCard';
 import SectionTitle from '@/components/SectionTitle';
 import { getAllCategories, Category, getProductCountByCategory } from '@/services/productService';
+import { supabase } from '@/integrations/supabase/client'; 
 
 const Categories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -13,15 +14,41 @@ const Categories = () => {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const allCategories = await getAllCategories();
-        setCategories(allCategories);
+        setLoading(true);
+        // Get all unique categories from the products table
+        const { data: uniqueCategories, error } = await supabase
+          .from('products')
+          .select('category')
+          .distinct();
+          
+        if (error) throw error;
+        
+        if (!uniqueCategories) {
+          setCategories([]);
+          return;
+        }
+        
+        // Transform into Category objects
+        const categoryObjects: Category[] = uniqueCategories.map((item, index) => ({
+          id: `category-${index}`,
+          name: item.category,
+          image: `/categories/${item.category.toLowerCase().replace(/\s+/g, '-')}.jpg`,
+          description: `Explore our ${item.category} collection`
+        }));
+        
+        setCategories(categoryObjects);
         
         // Get product counts for each category
         const counts: Record<string, number> = {};
-        for (const category of allCategories) {
-          const count = await getProductCountByCategory(category.id);
-          counts[category.id] = count;
+        for (const category of categoryObjects) {
+          const { count, error } = await supabase
+            .from('products')
+            .select('id', { count: 'exact', head: true })
+            .eq('category', category.name);
+            
+          counts[category.id] = count || 0;
         }
+        
         setProductCounts(counts);
       } catch (error) {
         console.error("Error loading categories:", error);

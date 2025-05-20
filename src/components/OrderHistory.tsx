@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getUserOrders, updateOrderStatus } from '@/services/productService';
 import { format } from 'date-fns';
 import { Eye, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Order {
   id: string;
@@ -29,9 +30,18 @@ const OrderHistory = () => {
 
     try {
       setLoading(true);
-      const userOrders = await getUserOrders(user.id);
+      
+      // Directly query the orders table for the current user
+      const { data: userOrders, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
       console.log("Loaded user orders:", userOrders); // Debug logging
-      setOrders(userOrders);
+      setOrders(userOrders || []);
     } catch (error) {
       console.error("Error loading orders:", error);
       toast({
@@ -53,9 +63,16 @@ const OrderHistory = () => {
   const handleCancelOrder = async (orderId: string) => {
     try {
       setUpdatingOrderStatus(orderId);
-      await updateOrderStatus(orderId, 'cancelled');
       
-      // Update the orders list
+      // Update order status in Supabase
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', orderId);
+        
+      if (error) throw error;
+      
+      // Update the orders list locally
       setOrders(orders.map(order => 
         order.id === orderId ? { ...order, status: 'cancelled' } : order
       ));
