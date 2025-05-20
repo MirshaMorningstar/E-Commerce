@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import CategoryCard from '@/components/CategoryCard';
 import SectionTitle from '@/components/SectionTitle';
-import { getAllCategories, Category, getProductCountByCategory } from '@/services/productService';
+import { Category } from '@/services/productService';
 import { supabase } from '@/integrations/supabase/client'; 
 
 const Categories = () => {
@@ -15,25 +15,27 @@ const Categories = () => {
     const loadCategories = async () => {
       try {
         setLoading(true);
-        // Get all unique categories from the products table
-        const { data: uniqueCategories, error } = await supabase
+        // Get all categories from the products table
+        const { data, error } = await supabase
           .from('products')
-          .select('category')
-          .distinct();
+          .select('category');
           
         if (error) throw error;
         
-        if (!uniqueCategories) {
+        if (!data) {
           setCategories([]);
           return;
         }
         
+        // Extract unique categories using Set
+        const uniqueCategories = Array.from(new Set(data.map(item => item.category)));
+        
         // Transform into Category objects
-        const categoryObjects: Category[] = uniqueCategories.map((item, index) => ({
+        const categoryObjects: Category[] = uniqueCategories.map((categoryName, index) => ({
           id: `category-${index}`,
-          name: item.category,
-          image: `/categories/${item.category.toLowerCase().replace(/\s+/g, '-')}.jpg`,
-          description: `Explore our ${item.category} collection`
+          name: categoryName,
+          image: `/categories/${categoryName.toLowerCase().replace(/\s+/g, '-')}.jpg`,
+          description: `Explore our ${categoryName} collection`
         }));
         
         setCategories(categoryObjects);
