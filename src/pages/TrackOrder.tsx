@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -34,6 +33,16 @@ interface Order {
   total_amount: number;
   items: OrderItem[];
   shipping_address?: Json | null; // Updated to accept Json type from Supabase
+}
+
+// Interface to strongly type shipping address properties
+interface ShippingAddress {
+  name?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
 }
 
 const TrackOrder = () => {
@@ -73,6 +82,17 @@ const TrackOrder = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to safely extract shipping address properties
+  const getShippingAddressProperty = (address: Json | null | undefined, property: keyof ShippingAddress): string => {
+    if (!address || typeof address !== 'object' || Array.isArray(address)) {
+      return '';
+    }
+
+    // Safe access to property using bracket notation
+    const typedAddress = address as Record<string, Json>;
+    return typedAddress[property]?.toString() || '';
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -264,14 +284,12 @@ const TrackOrder = () => {
                     <div>
                       <h3 className="font-medium mb-2">Shipping Address</h3>
                       <div className="space-y-1 text-sm">
-                        <p>{typeof order.shipping_address === 'object' ? order.shipping_address.name : ''}</p>
-                        <p>{typeof order.shipping_address === 'object' ? order.shipping_address.address : ''}</p>
+                        <p>{getShippingAddressProperty(order.shipping_address, 'name')}</p>
+                        <p>{getShippingAddressProperty(order.shipping_address, 'address')}</p>
                         <p>
-                          {typeof order.shipping_address === 'object' ? 
-                            `${order.shipping_address.city}, ${order.shipping_address.state} ${order.shipping_address.zip}` : 
-                            ''}
+                          {getShippingAddressProperty(order.shipping_address, 'city')}, {getShippingAddressProperty(order.shipping_address, 'state')} {getShippingAddressProperty(order.shipping_address, 'zip')}
                         </p>
-                        <p>{typeof order.shipping_address === 'object' ? order.shipping_address.country : ''}</p>
+                        <p>{getShippingAddressProperty(order.shipping_address, 'country')}</p>
                       </div>
                     </div>
                   )}
