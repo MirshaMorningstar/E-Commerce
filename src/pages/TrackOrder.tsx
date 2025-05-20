@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -66,13 +67,14 @@ const TrackOrder = () => {
     
     try {
       const orderData = await getOrderById(id);
-      setOrder(orderData);
+      setOrder(orderData as Order); // Ensure we cast to the Order type
       
       // Update the URL with the order ID
       if (!searchParams.has('id')) {
         setSearchParams({ id });
       }
     } catch (error: any) {
+      console.error("Order fetch error:", error);
       setError(error.message || 'Failed to fetch order details');
       toast({
         title: "Error",
@@ -319,34 +321,38 @@ const TrackOrder = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {order.items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-4 py-2 border-b last:border-none">
-                      <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden">
-                        {item.product.images && item.product.images.length > 0 ? (
-                          <img 
-                            src={item.product.images[0]}
-                            alt={item.product.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = "/placeholder.svg";
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                            <span className="text-xs text-gray-500">No image</span>
+                  {order.items && order.items.length > 0 ? (
+                    order.items.map((item) => (
+                      <div key={item.id} className="flex items-center gap-4 py-2 border-b last:border-none">
+                        <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden">
+                          {item.product.images && item.product.images.length > 0 ? (
+                            <img 
+                              src={item.product.images[0]}
+                              alt={item.product.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "/placeholder.svg";
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                              <span className="text-xs text-gray-500">No image</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium">{item.product.name}</h4>
+                          <div className="flex justify-between text-sm text-gray-500 mt-1">
+                            <span>Qty: {item.quantity}</span>
+                            <span>{formatPrice(item.price)}</span>
                           </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium">{item.product.name}</h4>
-                        <div className="flex justify-between text-sm text-gray-500 mt-1">
-                          <span>Qty: {item.quantity}</span>
-                          <span>{formatPrice(item.price)}</span>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-center py-4 text-gray-500">No items found in this order.</p>
+                  )}
                   
                   <div className="pt-4 flex justify-between font-medium">
                     <span>Total</span>

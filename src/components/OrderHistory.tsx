@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "@/components/ui/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserOrders, updateOrderStatus } from '@/services/productService';
 import { format } from 'date-fns';
@@ -22,7 +22,6 @@ const OrderHistory = () => {
   const [loading, setLoading] = useState(true);
   const [updatingOrderStatus, setUpdatingOrderStatus] = useState<string | null>(null);
   const { user } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   const loadOrders = async () => {
@@ -31,16 +30,24 @@ const OrderHistory = () => {
     try {
       setLoading(true);
       const userOrders = await getUserOrders(user.id);
+      console.log("Loaded user orders:", userOrders); // Debug logging
       setOrders(userOrders);
     } catch (error) {
       console.error("Error loading orders:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load your orders. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadOrders();
+    if (user?.id) {
+      loadOrders();
+    }
   }, [user]);
 
   const handleCancelOrder = async (orderId: string) => {

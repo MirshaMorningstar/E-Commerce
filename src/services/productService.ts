@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Category {
@@ -83,12 +82,6 @@ export const getAllCategories = async (): Promise<Category[]> => {
       image: `https://i.pravatar.cc/300?img=${index + 20}`, // Placeholder image
       subcategories: [] // We don't have subcategories yet
     }));
-
-    // Fetch product counts for each category
-    for (const category of categories) {
-      const count = await getProductCountByCategory(category.id);
-      category.subcategories = Array(count).fill('').map((_, i) => `Product ${i+1}`);
-    }
     
     return categories;
   } catch (error) {
@@ -139,13 +132,20 @@ export const getAllCategories = async (): Promise<Category[]> => {
 // Get product count by category
 export const getProductCountByCategory = async (categoryId: string): Promise<number> => {
   try {
-    const category = await getCategoryById(categoryId);
-    if (!category) return 0;
+    // Extract the category name from the ID (e.g., "category-1" -> index 0)
+    const categoryIndex = parseInt(categoryId.split('-')[1]) - 1;
+    
+    const allCategories = await getAllCategories();
+    if (categoryIndex < 0 || categoryIndex >= allCategories.length) {
+      return 0;
+    }
+    
+    const categoryName = allCategories[categoryIndex].name;
     
     const { count, error } = await supabase
       .from('products')
       .select('*', { count: 'exact', head: true })
-      .eq('category', category.name);
+      .eq('category', categoryName);
       
     if (error) throw error;
     
@@ -475,7 +475,7 @@ export const getOrderById = async (orderId: string) => {
     };
   } catch (error) {
     console.error("Error fetching order:", error);
-    throw error;
+    throw new Error(`Order not found: ${error.message}`);
   }
 };
 

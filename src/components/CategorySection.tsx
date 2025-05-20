@@ -21,7 +21,8 @@ const CategorySection = () => {
         // Get product counts for each category
         const counts: Record<string, number> = {};
         for (const category of fetchedCategories) {
-          counts[category.id] = category.subcategories.length;
+          const count = await getProductCountByCategory(category.id);
+          counts[category.id] = count;
         }
         setProductCounts(counts);
       } catch (error) {
