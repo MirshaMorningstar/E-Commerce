@@ -1,3 +1,4 @@
+
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "./productService";
@@ -298,29 +299,31 @@ export const createOrder = async (
   cartItems: CartItem[]
 ): Promise<string | null> => {
   try {
-    // Generate new UUID for order
-    const orderId = crypto.randomUUID();
-    
-    // Create a new order in the orders table
-    const { error: orderError } = await supabase
+    // Begin transaction
+    const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        id: orderId,
         user_id: userId,
         total_amount: totalAmount,
         status: 'pending',
         shipping_address: shippingInfo,
         payment_intent_id: `sim_${Math.random().toString(36).substring(2, 15)}`, // Simulated payment ID
-      });
+      })
+      .select('id')
+      .single();
     
     if (orderError) {
       console.error("Error creating order:", orderError);
       throw new Error(orderError.message);
     }
     
+    if (!order || !order.id) {
+      throw new Error("Failed to create order - no ID returned");
+    }
+    
     // Create entries in the order_items table for each item
     const orderItems = cartItems.map(item => ({
-      order_id: orderId,
+      order_id: order.id,
       product_id: item.productId,
       quantity: item.quantity,
       price_at_purchase: item.product.price
@@ -335,9 +338,17 @@ export const createOrder = async (
       throw new Error(itemsError.message);
     }
     
-    return orderId;
+    // After successfully creating the order and order items, clear the cart
+    await clearCart();
+    
+    return order.id;
   } catch (error) {
     console.error("Error in createOrder:", error);
+    toast({
+      title: "Order Failed",
+      description: "There was an error processing your order. Please try again.",
+      variant: "destructive",
+    });
     return null;
   }
 };
