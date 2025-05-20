@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getOrderById, updateOrderStatus } from '@/services/productService';
 import { format } from 'date-fns';
 import { CheckCheck, Package, Truck, Home, Clock, X } from 'lucide-react';
+import { Json } from '@/integrations/supabase/types';
 
 interface OrderItem {
   id: string;
@@ -32,7 +33,7 @@ interface Order {
   updated_at: string;
   total_amount: number;
   items: OrderItem[];
-  shipping_address?: Record<string, any>;
+  shipping_address?: Json | null; // Updated to accept Json type from Supabase
 }
 
 const TrackOrder = () => {
@@ -263,12 +264,14 @@ const TrackOrder = () => {
                     <div>
                       <h3 className="font-medium mb-2">Shipping Address</h3>
                       <div className="space-y-1 text-sm">
-                        <p>{order.shipping_address.name}</p>
-                        <p>{order.shipping_address.address}</p>
+                        <p>{typeof order.shipping_address === 'object' ? order.shipping_address.name : ''}</p>
+                        <p>{typeof order.shipping_address === 'object' ? order.shipping_address.address : ''}</p>
                         <p>
-                          {order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}
+                          {typeof order.shipping_address === 'object' ? 
+                            `${order.shipping_address.city}, ${order.shipping_address.state} ${order.shipping_address.zip}` : 
+                            ''}
                         </p>
-                        <p>{order.shipping_address.country}</p>
+                        <p>{typeof order.shipping_address === 'object' ? order.shipping_address.country : ''}</p>
                       </div>
                     </div>
                   )}
@@ -276,7 +279,7 @@ const TrackOrder = () => {
                 
                 {renderOrderTimeline(order.status)}
                 
-                {canBeCancelled(order.status) && user && order.user_id === user.id && (
+                {canBeCancelled(order.status) && order.user_id === user?.id && (
                   <div className="mt-6">
                     <Button
                       variant="outline"
