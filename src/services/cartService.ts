@@ -298,31 +298,29 @@ export const createOrder = async (
   cartItems: CartItem[]
 ): Promise<string | null> => {
   try {
+    // Generate new UUID for order
+    const orderId = crypto.randomUUID();
+    
     // Create a new order in the orders table
-    const { data: orderData, error: orderError } = await supabase
+    const { error: orderError } = await supabase
       .from('orders')
       .insert({
+        id: orderId,
         user_id: userId,
         total_amount: totalAmount,
         status: 'pending',
         shipping_address: shippingInfo,
         payment_intent_id: `sim_${Math.random().toString(36).substring(2, 15)}`, // Simulated payment ID
-      })
-      .select('id')
-      .single();
+      });
     
     if (orderError) {
       console.error("Error creating order:", orderError);
       throw new Error(orderError.message);
     }
     
-    if (!orderData) {
-      throw new Error("Failed to create order");
-    }
-    
     // Create entries in the order_items table for each item
     const orderItems = cartItems.map(item => ({
-      order_id: orderData.id,
+      order_id: orderId,
       product_id: item.productId,
       quantity: item.quantity,
       price_at_purchase: item.product.price
@@ -337,7 +335,7 @@ export const createOrder = async (
       throw new Error(itemsError.message);
     }
     
-    return orderData.id;
+    return orderId;
   } catch (error) {
     console.error("Error in createOrder:", error);
     return null;

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -148,6 +149,11 @@ const Cart = () => {
         setIsProcessing(false);
         return;
       }
+      
+      console.log("Creating order for user:", user.id);
+      console.log("Total amount:", total);
+      console.log("Shipping info:", shippingInfo);
+      console.log("Cart items:", cart.items);
       
       // Create the order in the database using the service function
       const newOrderId = await createOrderService(
