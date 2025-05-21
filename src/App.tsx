@@ -41,7 +41,7 @@ const App = () => (
           <WishlistProvider>
             <Toaster />
             <Sonner />
-            <BrowserRouter>
+            <BrowserRouter basename="/E-Commerce">
               <ScrollToTop />
               <Routes>
                 <Route path="/" element={<Index />} />
