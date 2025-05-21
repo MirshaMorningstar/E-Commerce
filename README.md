@@ -1,51 +1,45 @@
-# Welcome to my MERN project
+# 🌿 EcoGlow - Modern E-Commerce Web App
 
-## Project info
+## 📦 Project Overview
 
-## How can I edit this code?
+EcoGlow is a minimalist e-commerce platform designed for modern brands. Built using the MERN stack with a focus on performance and usability, this app provides features like category-based product browsing, user authentication, wishlist, cart functionality, and profile management.
 
-**Use your preferred IDE**
+## 🚀 How to Run This Project Locally
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+You can run this project on your local machine using any preferred IDE.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Prerequisites
 
-Follow these steps:
+Ensure you have **Node.js** and **npm** installed.  
+We recommend using [nvm](https://github.com/nvm-sh/nvm#installing-and-updating) to manage Node versions.
+
+### Getting Started
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Step 1: Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Step 2: Move into the project directory
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Step 3: Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+🛠 Tech Stack
+This project uses the following technologies:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Vite – Lightning-fast bundler and dev server.
 
-**Use GitHub Codespaces**
+TypeScript – Strongly typed JavaScript.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+React – Component-based UI library.
 
-## What technologies are used for this project?
+Tailwind CSS – Utility-first CSS framework.
 
-This project is built with:
+shadcn/ui – Modern component library for React apps.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Feel free to fork or clone this project and adapt it to your own ideas!
